@@ -57,8 +57,8 @@ class CandidateFamilyMemberSerializer(serializers.ModelSerializer):
     
     
 class CandidateSerializer(serializers.ModelSerializer):
-    photo = Base64ImageField(use_url=True)
-    signature = Base64ImageField(use_url=True)
+    photo = Base64ImageField(use_url=True, required=False)
+    signature = Base64ImageField(use_url=True, required=False)
     organization = serializers.CharField(source="vacancy.department.organization.name")
     department = serializers.CharField(source="vacancy.department.name")
     position = serializers.CharField(source="vacancy.position.name_ru")
