@@ -2,6 +2,7 @@ from rest_framework import serializers
 from django.contrib.auth import get_user_model
 
 from api_v1.fields import Base64ImageField
+from api_v1.positions.serializers import PositionSerializer
 from users.choices import CandidateStatus
 from users.models import Candidate, CandidateEducation, CandidateEmployment, CandidateFamilyMember
 
@@ -61,7 +62,7 @@ class CandidateSerializer(serializers.ModelSerializer):
     signature = Base64ImageField(use_url=True, required=False)
     organization = serializers.CharField(source="vacancy.department.organization.name")
     department = serializers.CharField(source="vacancy.department.name")
-    position = serializers.CharField(source="vacancy.position.name_ru")
+    position = PositionSerializer(source="vacancy.position", read_only=True)
     vacancy = serializers.CharField(source="vacancy.title")
     educations = CandidateEducationSerializer(many=True, required=False)
     employments = CandidateEmploymentSerializer(many=True, required=False)
@@ -181,7 +182,7 @@ class CandidateCreateSerializer(serializers.ModelSerializer):
 class CandidateListSerializer(serializers.ModelSerializer):
     organization = serializers.CharField(source="vacancy.department.organization.name")
     department = serializers.CharField(source="vacancy.department.name")
-    position = serializers.CharField(source="vacancy.position.name_ru")
+    position = PositionSerializer(source="vacancy.position", read_only=True)
     vacancy = serializers.CharField(source="vacancy.title")
     resume_file = Base64ImageField(use_url=True)
     questionnaire_file = Base64ImageField(use_url=True)
@@ -204,7 +205,8 @@ class CandidateListSerializer(serializers.ModelSerializer):
             "anonymization_date",
             "resume_file",
             "questionnaire_file",
-            "consent_file"
+            "consent_file",
+            "language"
         )
 
 
@@ -215,7 +217,7 @@ class CandidateDetailSerializer(serializers.ModelSerializer):
     family_members = CandidateFamilyMemberSerializer(many=True, read_only=True)
     organization = serializers.CharField(source="vacancy.department.organization.name")
     department = serializers.CharField(source="vacancy.department.name")
-    position = serializers.CharField(source="vacancy.position.name_ru")
+    position = PositionSerializer(source="vacancy.position", read_only=True)
     vacancy = serializers.CharField(source="vacancy.title")
     resume_file = Base64ImageField(use_url=True)
     questionnaire_file = Base64ImageField(use_url=True)
