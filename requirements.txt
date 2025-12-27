@@ -1,0 +1,16 @@
+Django==5.2.4
+djangorestframework
+django-unfold
+django-cors-headers
+django-filter
+django-scalar
+djangorestframework_simplejwt
+djoser
+drf-spectacular
+gunicorn
+python-dotenv
+Pillow
+celery
+redis
+mysqlclient
+gunicorn
