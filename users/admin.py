@@ -2,11 +2,12 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import Group
 from django.contrib.auth import get_user_model
+from django.db.models import Case, When, Value, IntegerField
 
 from unfold.forms import AdminPasswordChangeForm, UserChangeForm, UserCreationForm
 from unfold.admin import ModelAdmin, TabularInline
 
-from users.models import Candidate, CandidateEducation, CandidateEmployment, CandidateFamilyMember
+from users.models import Candidate, CandidateEducation, CandidateEmployment, CandidateFamilyMember, CandidateRecommendation
 
 User = get_user_model()
 
@@ -78,6 +79,14 @@ class CandidateEducationInline(TabularInline):
         css = {
             'all': ('admin/css/admin.css',)
         }
+        
+        
+class CandidateRecommendationInline(TabularInline):
+    model = CandidateRecommendation
+    extra = 0
+    fields = (
+        "text",
+    )
 
 
 class CandidateFamilyMemberInline(TabularInline):
@@ -107,6 +116,16 @@ class CandidateEmploymentInline(TabularInline):
         css = {
             'all': ('admin/css/admin.css',)
         }
+        
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        return qs.annotate(
+            current_job=Case(
+                When(end_date__isnull=True, then=Value(1)),
+                default=Value(0),
+                output_field=IntegerField(),
+            )
+        ).order_by('-current_job', '-end_date', '-start_date')
 
 
 @admin.register(Candidate)
@@ -115,6 +134,7 @@ class CandidateAdmin(ModelAdmin):
         CandidateEducationInline,
         CandidateFamilyMemberInline,
         CandidateEmploymentInline,
+        CandidateRecommendationInline,
     ]
 
     list_display = (
@@ -157,6 +177,7 @@ class CandidateAdmin(ModelAdmin):
         }),
         ("Персональные данные", {
             "fields": (
+                "photo",
                 "birth_date",
                 "birth_place",
                 "citizenship",
@@ -187,11 +208,12 @@ class CandidateAdmin(ModelAdmin):
         ("Профессиональная информация", {
             "fields": (
                 "vacancy",
-                "language",
+                "language"
             ),
         }),
         ("Анкета", {
             "fields": (
+                "foreign_languages",
                 "military_service",
                 "disqualification",
                 "management_experience",

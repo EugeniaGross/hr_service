@@ -4,7 +4,7 @@ from django.contrib.auth import get_user_model
 from api_v1.fields import Base64ImageField
 from api_v1.positions.serializers import PositionSerializer
 from users.choices import CandidateStatus
-from users.models import Candidate, CandidateEducation, CandidateEmployment, CandidateFamilyMember
+from users.models import Candidate, CandidateEducation, CandidateEmployment, CandidateFamilyMember, CandidateRecommendation
 
 User = get_user_model()
 
@@ -55,6 +55,14 @@ class CandidateFamilyMemberSerializer(serializers.ModelSerializer):
     class Meta:
         model = CandidateFamilyMember
         exclude = ("candidate",)
+        
+        
+class CandidateRecommendationSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(required=False)
+
+    class Meta:
+        model = CandidateRecommendation
+        exclude = ("candidate",)
     
     
 class CandidateSerializer(serializers.ModelSerializer):
@@ -67,6 +75,7 @@ class CandidateSerializer(serializers.ModelSerializer):
     educations = CandidateEducationSerializer(many=True, required=False)
     employments = CandidateEmploymentSerializer(many=True, required=False)
     family_members = CandidateFamilyMemberSerializer(many=True, required=False)
+    recommendations = CandidateRecommendationSerializer(many=True, required=False)
 
     class Meta:
         model = Candidate
@@ -123,6 +132,7 @@ class CandidateSerializer(serializers.ModelSerializer):
         educations_data = validated_data.pop("educations", [])
         employments_data = validated_data.pop("employments", [])
         family_members_data = validated_data.pop("family_members", [])
+        recommendations_data = validated_data.pop("recommendations", [])
 
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
@@ -153,6 +163,7 @@ class CandidateSerializer(serializers.ModelSerializer):
         update_nested(instance, educations_data, "educations", CandidateEducation)
         update_nested(instance, employments_data, "employments", CandidateEmployment)
         update_nested(instance, family_members_data, "family_members", CandidateFamilyMember)
+        update_nested(instance, recommendations_data, "recommendations", CandidateRecommendation)
 
         return instance
     
@@ -185,8 +196,6 @@ class CandidateListSerializer(serializers.ModelSerializer):
     position = PositionSerializer(source="vacancy.position", read_only=True)
     vacancy = serializers.CharField(source="vacancy.title")
     resume_file = Base64ImageField(use_url=True)
-    questionnaire_file = Base64ImageField(use_url=True)
-    consent_file = Base64ImageField(use_url=True)
 
     class Meta:
         model = Candidate
@@ -204,8 +213,6 @@ class CandidateListSerializer(serializers.ModelSerializer):
             "vacancy",
             "anonymization_date",
             "resume_file",
-            "questionnaire_file",
-            "consent_file",
             "language"
         )
 
@@ -215,14 +222,13 @@ class CandidateDetailSerializer(serializers.ModelSerializer):
     educations = CandidateEducationSerializer(many=True, read_only=True)
     employments = CandidateEmploymentSerializer(many=True, read_only=True)
     family_members = CandidateFamilyMemberSerializer(many=True, read_only=True)
+    recommendations = CandidateRecommendationSerializer(many=True, required=False)
     organization = serializers.CharField(source="vacancy.department.organization.name")
     department = serializers.CharField(source="vacancy.department.name")
     position = PositionSerializer(source="vacancy.position", read_only=True)
     vacancy = serializers.CharField(source="vacancy.title")
     resume_file = Base64ImageField(use_url=True)
-    questionnaire_file = Base64ImageField(use_url=True)
-    consent_file = Base64ImageField(use_url=True)
-
+    
     class Meta:
         model = Candidate
         fields = (
@@ -272,8 +278,6 @@ class CandidateDetailSerializer(serializers.ModelSerializer):
             "employments",
             "family_members",
             "resume_file",
-            "questionnaire_file",
-            "consent_file"
         )
     
     

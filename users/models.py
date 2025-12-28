@@ -7,6 +7,7 @@ from django.utils import timezone
 
 from users.choices import CandidateStatus, CommunicationLanguage, EducationForm
 from users.managers import UserManager
+from users.validators import validate_graduation_year
 from vacancies.models import Vacancy
 
 
@@ -124,10 +125,6 @@ class Candidate(models.Model):
         "Владение иностранными языками",
         blank=True,
     )
-    recommendations = models.TextField(
-        "Рекомендации с предыдущих мест работы",
-        blank=True
-    )
     military_service = models.TextField(
         "Воинская обязанность (звание, военкомат)",
         blank=True
@@ -174,26 +171,15 @@ class Candidate(models.Model):
         "Пожелания по заработной плате",
         blank=True,
     )
-    signature = models.CharField(
+    signature = models.ImageField(
         "Подпись", 
-        max_length=255,
-        blank=True
+        upload_to="candidates/signatures/",
+        blank=True,
+        null=True
     )
     resume_file = models.FileField(
         verbose_name="Резюме",
         upload_to="candidates/resume/",
-        null=True,
-        blank=True
-    )
-    questionnaire_file = models.FileField(
-        verbose_name="Анкета кандидата",
-        upload_to="candidates/questionnaires/",
-        null=True,
-        blank=True
-    )
-    consent_file = models.FileField(
-        verbose_name="Согласие на обработку персональных данных",
-        upload_to="candidates/consents/",
         null=True,
         blank=True
     )
@@ -230,6 +216,27 @@ class Candidate(models.Model):
         
     def is_link_valid(self):
         return timezone.now() <= self.link_expiration
+    
+    
+class CandidateRecommendation(models.Model):
+    candidate = models.ForeignKey(
+        Candidate,
+        on_delete=models.CASCADE,
+        related_name="recommendations",
+        verbose_name="Кандидат"
+    )
+
+    text = models.TextField(
+        "Рекомендация с предыдущего места работы"
+    )
+
+    class Meta:
+        verbose_name = "рекомендация"
+        verbose_name_plural = "Рекомендации кандидата"
+        ordering = ("id",)
+
+    def __str__(self):
+        return f"Рекомендация для {self.candidate.last_name}"
 
 
 class CandidateEducation(models.Model):
@@ -243,8 +250,9 @@ class CandidateEducation(models.Model):
         "Учебное заведение и местонахождение", 
         max_length=255
     )
-    graduation_date = models.DateField(
-        "Дата окончания", 
+    graduation_date = models.PositiveIntegerField(
+        "Год окончания", 
+        validators=[validate_graduation_year]
     )
     education_form = models.CharField(
         "Форма обучения",
@@ -256,7 +264,7 @@ class CandidateEducation(models.Model):
     )
     diploma_information = models.CharField(
         "Информация о дипломе", 
-        max_length=50, 
+        max_length=255, 
         blank=True
     )
 
@@ -308,7 +316,7 @@ class CandidateEmployment(models.Model):
     class Meta:
         verbose_name = "трудовая деятельность"
         verbose_name_plural = "Трудовая деятельность кандидата"
-        ordering = ("start_date",)
+        ordering = ("-end_date",)
         
     def __str__(self):
         return self.position_and_organization
