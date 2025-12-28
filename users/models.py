@@ -203,7 +203,14 @@ class Candidate(models.Model):
         related_name="candidates",
         verbose_name="Вакансия"
     )
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(
+        "Дата создания",
+        auto_now_add=True
+    )
+    updated_at = models.DateTimeField(
+        "Дата последнего обновления",
+        auto_now=True
+    )
     anonymization_date = models.DateField(
         "Дата обезличивания",
         null=True, 
@@ -225,9 +232,29 @@ class CandidateRecommendation(models.Model):
         related_name="recommendations",
         verbose_name="Кандидат"
     )
-
+    company = models.CharField(
+        "Компания",
+        max_length=255,
+        blank=True
+    )
+    name = models.CharField(
+        "ФИО рекомендателя",
+        max_length=255,
+        blank=True
+    )
+    position = models.CharField(
+        "Должность рекомендателя",
+        max_length=255,
+        blank=True
+    )
+    contact = models.CharField(
+        "Телефон или e-mail",
+        max_length=255,
+        blank=True
+    )
     text = models.TextField(
-        "Рекомендация с предыдущего места работы"
+        "Текст рекомендации",
+        blank=True
     )
 
     class Meta:
@@ -236,7 +263,7 @@ class CandidateRecommendation(models.Model):
         ordering = ("id",)
 
     def __str__(self):
-        return f"Рекомендация для {self.candidate.last_name}"
+        return f"{self.name} ({self.company})"
 
 
 class CandidateEducation(models.Model):
@@ -257,7 +284,8 @@ class CandidateEducation(models.Model):
     education_form = models.CharField(
         "Форма обучения",
         max_length=20,
-        choices=EducationForm.choices
+        choices=EducationForm.choices,
+        blank=True
     )
     specialty = models.CharField(
         "Специальность", max_length=255
@@ -334,6 +362,9 @@ class CandidateFamilyMember(models.Model):
     )
     birth_year = models.PositiveIntegerField(
         "Год рождения", null=True, blank=True
+    )
+    birth_date = models.DateField(
+        "Дата рождения", null=True, blank=True
     )
     occupation = models.CharField(
         "Род деятельности", max_length=255, blank=True

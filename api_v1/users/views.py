@@ -29,9 +29,9 @@ from api_v1.mixins import CookiesTokenMixin, UpdateModelMixin
 from api_v1.permissions import IsCandidateWithValidLink, IsHRPermission
 from api_v1.users.filters import CandidateFilter
 from api_v1.users.serializers import CandidateCreateSerializer, CandidateDetailSerializer, CandidateListSerializer, CandidatePartialUpdateSerializer, ResetPasswordSerializer, CandidateSerializer, ForgotPasswordSerializer, SetPasswordSerializer, UserLoginSerializer
-from api_v1.users.utils import RU_MONTHS, insert_employment_row, insert_family_row, insert_recommendation_row, write_cell, split_text, insert_education_row, write_recommendation_cell, find_row_by_text, write_answer_block, write_created_at, insert_candidate_photo, DocumentService
+from api_v1.users.utils import RU_MONTHS, EN_MONTHS, FR_MONTHS, insert_employment_row, insert_family_row, insert_recommendation_row, write_cell, split_text, insert_education_row, write_recommendation_cell, find_row_by_text, write_answer_block, write_created_at, insert_candidate_photo, DocumentService
 from users.models import Candidate
-from users.choices import CandidateStatus
+from users.choices import CandidateStatus, CommunicationLanguage
 from users.tasks import send_reset_password_email_task, send_candidate_anonymization_email_task, send_candidate_questionnaire_task
 from users.utils import anonymization_candidate_date, calculate_candidate_link_expiration, anonymize_name
 
@@ -313,8 +313,19 @@ class CandidateViewSet(
     def get_questionnaire_pdf(self, request, pk=None):
         candidate = self.get_object()
         path = str(settings.BASE_DIR) + os.sep
-        tpl = DocxTemplate(os.path.join(path, "templates", "Анкета_ru.docx"))
-        now = datetime.now()
+        if candidate.language == CommunicationLanguage.RU:
+            tpl = DocxTemplate(
+                os.path.join(path, "templates", "Анкета_ru.docx")
+            )
+        if candidate.language == CommunicationLanguage.EN:
+            tpl = DocxTemplate(
+                os.path.join(path, "templates", "Анкета_en.docx")
+            )
+        if candidate.language == CommunicationLanguage.FR:
+            tpl = DocxTemplate(
+                os.path.join(path, "templates", "Анкета_fr.docx")
+            )
+        date = candidate.updated_at
         photo = None
         sign = None
 
@@ -338,13 +349,18 @@ class CandidateViewSet(
             allow_reference_check = "Нет"
         context = {
             "candidate": candidate,
-            "day": now.day,
-            "month": RU_MONTHS[now.month],
-            "year": now.year,
+            "day": date.day,
+            "year": date.year,
             "photo": photo,
             "signature": sign,
-            "allow_reference_check": allow_reference_check,
+            "allow_reference_check": allow_reference_check
         }
+        if candidate.language == CommunicationLanguage.RU:
+            context["month"] = RU_MONTHS[date.month]
+        if candidate.language == CommunicationLanguage.FR:
+            context["month"] = FR_MONTHS[date.month]
+        if candidate.language == CommunicationLanguage.EN:
+            context["month"] = EN_MONTHS[date.month]
         pdf_bytes = DocumentService().get_doc_pdf(context, tpl)
         return FileResponse(
             pdf_bytes,
@@ -356,7 +372,12 @@ class CandidateViewSet(
     def get_consent_pdf(self, request, pk=None):
         candidate = self.get_object()
         path = str(settings.BASE_DIR) + os.sep
-        tpl = DocxTemplate(os.path.join(path, "templates", "Текст для согласия рус.docx"))
+        if candidate.language == CommunicationLanguage.RU:
+            tpl = DocxTemplate(os.path.join(path, "templates", "Текст для согласия рус.docx"))
+        if candidate.language == CommunicationLanguage.EN:
+            tpl = DocxTemplate(os.path.join(path, "templates", "Текст для согласия англ.docx"))
+        if candidate.language == CommunicationLanguage.FR:
+            tpl = DocxTemplate(os.path.join(path, "templates", "Текст для согласия франц.docx"))
         context = {
             "candidate": candidate,
         }
