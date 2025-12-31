@@ -224,6 +224,9 @@ class Candidate(models.Model):
     def is_link_valid(self):
         return timezone.now() <= self.link_expiration
     
+    def __str__(self):
+        return f"{self.last_name} {self.first_name}"
+    
     
 class CandidateRecommendation(models.Model):
     candidate = models.ForeignKey(

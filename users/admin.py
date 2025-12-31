@@ -85,6 +85,10 @@ class CandidateRecommendationInline(TabularInline):
     model = CandidateRecommendation
     extra = 0
     fields = (
+        "company",
+        "name",
+        "position",
+        "contact",
         "text",
     )
 
