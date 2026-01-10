@@ -1,4 +1,4 @@
-version: '3.9'
+version: "3.9"
 
 volumes:
   mariadb_data:
@@ -17,7 +17,7 @@ services:
       - MARIADB_PASSWORD=${MARIADB_PASSWORD}
       - MARIADB_ROOT_HOST=${MARIADB_ROOT_HOST}
     healthcheck:
-      test: [ "CMD", "healthcheck.sh", "--connect", "--innodb_initialized" ]
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
     restart: always
 
   redis:
@@ -25,21 +25,21 @@ services:
     env_file:
       - .env
     ports:
-      - '6379:6379'
+      - "6379:6379"
     volumes:
       - redis_data:/root/redis
       - redis_conf:/usr/local/etc/redis/redis.conf
     command: >
       --maxclients 20000 --timeout 300 --appendonly yes --replica-read-only no
     healthcheck:
-      test: [ "CMD", "redis-cli", "--raw", "incr", "ping" ]
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
       interval: 5s
       timeout: 3s
       retries: 10
     restart: always
 
   backend:
-    build: 
+    build:
       context: ./
     env_file: .env
     depends_on:
@@ -51,34 +51,35 @@ services:
       - ./mediafiles:/app/media/
       - ./staticfiles:/app/collected_static/
     command: sh -c "python manage.py migrate &&
-                    python manage.py runserver 0.0.0.0:8000"
+      python manage.py collectstatic --noinput &&
+      python manage.py runserver 0.0.0.0:8000"
     ports:
       - "127.0.0.1:7000:8000"
     restart: always
 
   celery_beat:
-    build: 
+    build:
       context: .
     command: celery --app=backend beat --loglevel=info
     volumes:
       - .:/app
     env_file: .env
     depends_on:
-      redis: 
+      redis:
         condition: "service_healthy"
       backend:
         condition: "service_started"
     restart: always
 
   celery_worker:
-    build: 
+    build:
       context: .
     command: celery --app=backend worker --loglevel=info
     volumes:
       - .:/app
     env_file: .env
     depends_on:
-      redis: 
+      redis:
         condition: "service_healthy"
       backend:
-        condition: "service_started"  
+        condition: "service_started"
