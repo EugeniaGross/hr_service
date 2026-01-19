@@ -63,7 +63,7 @@ class LoginAPIView(CookiesTokenMixin, APIView):
         if user and not uuid and user.role != "hr":
             return Response({"detail": "Доступ запрещен"}, status=403)
         response = self._get_tokens_for_user(user)
-        return self.add_refresh_token_in_cookies(response)
+        return self.add_refresh_token_in_cookies(response, user.role)
     
     def check_candidate(self, uuid):
         try:

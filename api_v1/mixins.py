@@ -28,7 +28,7 @@ class UpdateModelMixin:
 
 class CookiesTokenMixin:
 
-    def add_refresh_token_in_cookies(self, response):
+    def add_refresh_token_in_cookies(self, response, role: str):
         if response.status_code == 200:
             data = response.data
             refresh_token = data.get("refresh")
@@ -46,4 +46,5 @@ class CookiesTokenMixin:
             )
 
             del response.data["refresh"]
+            response.data["role"] = role
         return response
