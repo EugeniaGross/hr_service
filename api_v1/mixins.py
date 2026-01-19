@@ -28,10 +28,12 @@ class UpdateModelMixin:
 
 class CookiesTokenMixin:
 
-    def add_refresh_token_in_cookies(self, response, role: str):
+    def add_refresh_token_in_cookies(self, response, role: str = None):
         if response.status_code == 200:
             data = response.data
             refresh_token = data.get("refresh")
+            if refresh_token is None:
+                return response
 
             cookie_max_age = 3600 * 24 * settings.REFRESH_TOKEN_LIFETIME
 
@@ -46,5 +48,6 @@ class CookiesTokenMixin:
             )
 
             del response.data["refresh"]
-            response.data["role"] = role
+            if role is not None:
+                response.data["role"] = role
         return response
