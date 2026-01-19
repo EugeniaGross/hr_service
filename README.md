@@ -25,8 +25,17 @@
     MARIADB_ROOT_HOST=%
    ```
 2. В корне проекта выполнить команду:
+Для dev
   ```
-  docker compose up --build
+  docker compose -f docker-compose.dev.yaml up --build
+  ```
+Для prod
+  ```
+  docker compose -f docker-compose.prod.yaml up --build -d
+  ```
+Сбор статики в новом терминале для prod
+  ```
+  docker compose exec backend python manage.py collectstatic
   ```
 3. В новом терминале выполнить команду:
   ```

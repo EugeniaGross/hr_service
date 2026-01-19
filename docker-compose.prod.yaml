@@ -1,0 +1,83 @@
+version: "3.9"
+
+volumes:
+  mariadb_data:
+  redis_data:
+  redis_conf:
+
+services:
+  mariadb:
+    image: mariadb:11.4
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    environment:
+      - MARIADB_ROOT_PASSWORD=${MARIADB_ROOT_PASSWORD}
+      - MARIADB_DATABASE=${MARIADB_DATABASE}
+      - MARIADB_USER=${MARIADB_USER}
+      - MARIADB_PASSWORD=${MARIADB_PASSWORD}
+      - MARIADB_ROOT_HOST=${MARIADB_ROOT_HOST}
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+    restart: always
+
+  redis:
+    image: redis:7-alpine
+    env_file:
+      - .env
+    volumes:
+      - redis_data:/root/redis
+      - redis_conf:/usr/local/etc/redis/redis.conf
+    command: >
+      --maxclients 20000 --timeout 300 --appendonly yes --replica-read-only no
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: always
+
+  backend:
+    build:
+      context: ./
+    env_file: .env
+    depends_on:
+      mariadb:
+        condition: "service_healthy"
+      redis:
+        condition: "service_healthy"
+    volumes:
+      - ./mediafiles:/app/media/
+      - ./staticfiles:/app/collected_static/
+    command: sh -c "python manage.py migrate && gunicorn --workers 4 --bind 0.0.0.0:8000 backend.wsgi"
+    ports:
+      - "127.0.0.1:7000:8000"
+    restart: always
+
+  celery_beat:
+    build:
+      context: .
+    command: celery --app=backend beat --loglevel=info
+    volumes:
+      - .:/app
+    env_file: .env
+    depends_on:
+      redis:
+        condition: "service_healthy"
+      backend:
+        condition: "service_started"
+    restart: always
+
+  celery_worker:
+    build:
+      context: .
+    command: celery --app=backend worker --loglevel=info
+    volumes:
+      - .:/app
+    env_file: .env
+    depends_on:
+      redis:
+        condition: "service_healthy"
+      backend:
+        condition: "service_started"
+    restart: always
+  
