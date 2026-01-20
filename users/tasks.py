@@ -54,8 +54,11 @@ def send_candidate_questionnaire_task(self, candidate_id: int):
     except Candidate.DoesNotExist:
         logger.warning("Candidate %s not found", candidate_id)
         return
-
-    send_candidate_questionnaire(candidate)
+    try:
+        send_candidate_questionnaire(candidate)
+    except Exception as e:
+        logger.error("Ошибка при отправке анкеты: %s", e, exc_info=True)
+    
     
     
 @shared_task

@@ -58,7 +58,7 @@ services:
       context: .
     command: celery --app=backend beat --loglevel=info
     volumes:
-      - .:/app
+      - ./:/app
     env_file: .env
     depends_on:
       redis:
@@ -72,7 +72,7 @@ services:
       context: .
     command: celery --app=backend worker --loglevel=info
     volumes:
-      - .:/app
+      - ./:/app
     env_file: .env
     depends_on:
       redis:
