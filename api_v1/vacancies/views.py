@@ -30,7 +30,7 @@ class VacancyViewSet(
     def get_queryset(self):
         queryset = (
             Vacancy.objects
-            .select_related("department")
+            .select_related("department", "department__organization")
             .annotate(candidates_count=Count("candidates"))
             .order_by("-created_at")
         )
