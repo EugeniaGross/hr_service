@@ -35,11 +35,11 @@
   ```
 Сбор статики в новом терминале для prod
   ```
-  docker compose exec backend python manage.py collectstatic
+  docker compose -f docker-compose.prod.yaml exec backend python manage.py collectstatic
   ```
 3. В новом терминале выполнить команду:
   ```
-  docker compose exec backend python manage.py createsuperuser
+  docker compose -f docker-compose.prod.yaml exec backend python manage.py createsuperuser
   ```
 4. Зайдите в панель администратора и создайте настройки системы
 5. Полезные ссылки

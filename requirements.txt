@@ -16,3 +16,4 @@ mysqlclient
 gunicorn
 openpyxl
 docxtpl
+django-cors-headers==4.9.0
