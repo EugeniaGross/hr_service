@@ -17,6 +17,7 @@ class OrganizationSerializer(serializers.ModelSerializer):
             "email",
             "email_password",
             "email_host",
+            "email_port"
         )
 
     def create(self, validated_data):

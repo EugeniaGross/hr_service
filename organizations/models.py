@@ -26,6 +26,9 @@ class Organization(models.Model):
         max_length=255,
         verbose_name="SMTP-сервер электронной почты"
     )
+    email_port = models.PositiveIntegerField(
+        verbose_name="Порт SMTP-сервера"
+    )
 
     class Meta:
         verbose_name = "организация"

@@ -49,5 +49,5 @@ class OrganizationAdmin(ModelAdmin):
 
     fieldsets = (
         ("Основная информация", {"fields": ("name", "domain")}),
-        ("Почтовые настройки", {"fields": ("email", "email_host", "email_password")}),
+        ("Почтовые настройки", {"fields": ("email", "email_host", "email_password", "email_port")}),
     )

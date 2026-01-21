@@ -50,12 +50,21 @@ def get_email_anonymization_template(language: str) -> str:
 
 
 def get_organization_email_connection(org: Organization):
+    if org.email_port == 465:
+        return EmailBackend(
+            host=org.email_host,
+            port=org.email_port,
+            username=org.email,
+            password=org.get_password(),
+            use_ssl=True,
+            fail_silently=False,
+        )
     return EmailBackend(
         host=org.email_host,
-        port=465,
+        port=org.email_port,
         username=org.email,
         password=org.get_password(),
-        use_ssl=True,
+        use_tls=True,
         fail_silently=False,
     )
 
