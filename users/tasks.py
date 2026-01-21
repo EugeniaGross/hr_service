@@ -56,8 +56,10 @@ def send_candidate_questionnaire_task(self, candidate_id: int):
         return
     try:
         send_candidate_questionnaire(candidate)
+        logger.info(f"Анкета отправлена на адрес {candidate.email}")
     except Exception as e:
         logger.error("Ошибка при отправке анкеты: %s", e, exc_info=True)
+        raise
     
     
     

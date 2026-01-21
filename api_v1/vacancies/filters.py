@@ -7,8 +7,7 @@ class VacancyFilter(django_filters.FilterSet):
         choices=VacancyStatus.choices
     )
     organization = django_filters.NumberFilter(
-        field_name="department__organization",
-        lookup_expr="exact"
+        field_name="department__organization"
     )
 
     class Meta:

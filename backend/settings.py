@@ -31,7 +31,7 @@ SECRET_KEY = os.getenv("SECRET_KEY", "")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = bool(os.getenv("DEBUG", ""))
-
+print(DEBUG)
 ALLOWED_HOSTS = ["*"]
 
 ENCRYPTION_KEY = os.getenv("ENCRYPTION_KEY", "").encode()
@@ -260,6 +260,8 @@ CELERY_TIMEZONE = TIME_ZONE
 CELERY_TASK_ACKS_LATE = True
 CELERY_TASK_REJECT_ON_WORKER_LOST = True
 CELERY_WORKER_PREFETCH_MULTIPLIER = 1
+CELERY_TASK_TRACK_STARTED = True
+CELERY_RESULT_EXPIRES = 3600
 
 LOGGING = {
     'version': 1,
@@ -283,6 +285,10 @@ LOGGING = {
             'handlers': ['console'],
             'level': 'INFO',
             'propagate': False,
+        },
+        'celery': {
+            'handlers': ['console'], 
+            'level': 'INFO'
         },
     },
 }
