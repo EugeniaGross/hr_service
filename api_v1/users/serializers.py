@@ -226,7 +226,6 @@ class CandidateDetailSerializer(serializers.ModelSerializer):
     organization = serializers.CharField(source="vacancy.department.organization.name")
     department = serializers.CharField(source="vacancy.department.name")
     position = PositionSerializer(source="vacancy.position", read_only=True)
-    vacancy = serializers.CharField(source="vacancy.title")
     resume_file = Base64ImageField(use_url=True)
     
     class Meta:
