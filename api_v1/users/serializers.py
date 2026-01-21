@@ -192,8 +192,11 @@ class CandidateCreateSerializer(serializers.ModelSerializer):
 
 class CandidateListSerializer(serializers.ModelSerializer):
     organization = serializers.CharField(source="vacancy.department.organization.name")
+    organization_id = serializers.IntegerField(source="vacancy.department.organization.id")
     department = serializers.CharField(source="vacancy.department.name")
     position = PositionSerializer(source="vacancy.position", read_only=True)
+    vacancy = serializers.CharField(source="vacancy.title")
+    vacancy_id = serializers.IntegerField(source="vacancy.id")
     resume_file = Base64ImageField(use_url=True)
 
     class Meta:
@@ -207,9 +210,11 @@ class CandidateListSerializer(serializers.ModelSerializer):
             "phone",
             "status",
             "organization",
+            "organization_id",
             "department",
             "position",
             "vacancy",
+            "vacancy_id",
             "anonymization_date",
             "resume_file",
             "language"
