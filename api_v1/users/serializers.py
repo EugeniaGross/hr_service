@@ -231,6 +231,7 @@ class CandidateDetailSerializer(serializers.ModelSerializer):
     organization_id = serializers.IntegerField(source="vacancy.department.organization.id")
     department = serializers.CharField(source="vacancy.department.name")
     position = PositionSerializer(source="vacancy.position", read_only=True)
+    vacancy = serializers.CharField(source="vacancy.title")
     vacancy_id = serializers.IntegerField(source="vacancy.id")
     resume_file = Base64ImageField(use_url=True)
 
