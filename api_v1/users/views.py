@@ -307,6 +307,23 @@ class CandidateViewSet(
             anonymization_date=anonymization_candidate_date()
         )
         
+    @transaction.atomic
+    def perform_update(self, serializer):
+        candidate = self.get_object()
+        new_email = serializer.validated_data.get("email")
+        old_user = candidate.user
+        if new_email and new_email != old_user.email:
+            user, created = User.objects.get_or_create(
+                email=new_email,
+                defaults={"is_active": False}
+            )
+            if created:
+                user.set_unusable_password()
+                user.save()
+            candidate.user = user
+            candidate.status = CandidateStatus.NEW
+        serializer.save()
+        
     @action(detail=True, methods=["get"])
     def get_questionnaire_pdf(self, request, pk=None):
         candidate = self.get_object()
