@@ -56,7 +56,7 @@ services:
   celery_beat:
     build:
       context: .
-    command: celery --app=backend beat --loglevel=info
+    command: celery --app=backend beat -l INFO
     volumes:
       - ./:/app
     env_file: .env
@@ -70,7 +70,7 @@ services:
   celery_worker:
     build:
       context: .
-    command: celery --app=backend worker --loglevel=info
+    command: celery --app=backend worker -l INFO -E
     volumes:
       - ./:/app
     env_file: .env
