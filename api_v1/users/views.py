@@ -321,8 +321,11 @@ class CandidateViewSet(
                 user.set_unusable_password()
                 user.save()
             candidate.user = user
-            candidate.status = CandidateStatus.NEW
-        serializer.save()
+            serializer.save(user=user, status=CandidateStatus.NEW)
+        else:
+            serializer.save(
+                status = CandidateStatus.NEW
+            )
         
     @action(detail=True, methods=["get"])
     def get_questionnaire_pdf(self, request, pk=None):
