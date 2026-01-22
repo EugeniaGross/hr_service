@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 
-from api_v1.fields import Base64ImageField
+from api_v1.fields import Base64FileField
 from api_v1.positions.serializers import PositionSerializer
 from users.choices import CandidateStatus
 from users.models import Candidate, CandidateEducation, CandidateEmployment, CandidateFamilyMember, CandidateRecommendation
@@ -66,8 +66,8 @@ class CandidateRecommendationSerializer(serializers.ModelSerializer):
     
     
 class CandidateSerializer(serializers.ModelSerializer):
-    photo = Base64ImageField(use_url=True, required=False)
-    signature = Base64ImageField(use_url=True, required=False)
+    photo = Base64FileField(use_url=True, required=False)
+    signature = Base64FileField(use_url=True, required=False)
     organization = serializers.CharField(source="vacancy.department.organization.name")
     department = serializers.CharField(source="vacancy.department.name")
     position = PositionSerializer(source="vacancy.position", read_only=True)
@@ -169,7 +169,7 @@ class CandidateSerializer(serializers.ModelSerializer):
     
     
 class CandidateCreateSerializer(serializers.ModelSerializer):
-    resume_file = Base64ImageField(use_url=True, required=False)
+    resume_file = Base64FileField(use_url=True, required=False)
 
     class Meta:
         model = Candidate
@@ -197,7 +197,7 @@ class CandidateListSerializer(serializers.ModelSerializer):
     position = PositionSerializer(source="vacancy.position", read_only=True)
     vacancy = serializers.CharField(source="vacancy.title")
     vacancy_id = serializers.IntegerField(source="vacancy.id")
-    resume_file = Base64ImageField(use_url=True)
+    resume_file = Base64FileField(use_url=True)
 
     class Meta:
         model = Candidate
@@ -222,7 +222,7 @@ class CandidateListSerializer(serializers.ModelSerializer):
 
 
 class CandidateDetailSerializer(serializers.ModelSerializer):
-    photo = Base64ImageField(use_url=True)
+    photo = Base64FileField(use_url=True)
     educations = CandidateEducationSerializer(many=True, read_only=True)
     employments = CandidateEmploymentSerializer(many=True, read_only=True)
     family_members = CandidateFamilyMemberSerializer(many=True, read_only=True)
@@ -230,7 +230,7 @@ class CandidateDetailSerializer(serializers.ModelSerializer):
     organization = serializers.CharField(source="vacancy.department.organization.name")
     department = serializers.CharField(source="vacancy.department.name")
     position = PositionSerializer(source="vacancy.position", read_only=True)
-    resume_file = Base64ImageField(use_url=True)
+    resume_file = Base64FileField(use_url=True)
     
     class Meta:
         model = Candidate
@@ -285,7 +285,7 @@ class CandidateDetailSerializer(serializers.ModelSerializer):
     
     
 class CandidatePartialUpdateSerializer(serializers.ModelSerializer):
-    resume_file = Base64ImageField(use_url=True, required=False)
+    resume_file = Base64FileField(use_url=True, required=False)
 
     class Meta:
         model = Candidate
