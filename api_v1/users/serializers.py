@@ -66,8 +66,8 @@ class CandidateRecommendationSerializer(serializers.ModelSerializer):
     
     
 class CandidateSerializer(serializers.ModelSerializer):
-    photo = Base64FileField(use_url=True, required=False)
-    signature = Base64FileField(use_url=True, required=False)
+    photo = Base64FileField(use_url=True, required=False, allow_null=True)
+    signature = Base64FileField(use_url=True, required=False, allow_null=True)
     organization = serializers.CharField(source="vacancy.department.organization.name")
     department = serializers.CharField(source="vacancy.department.name")
     position = PositionSerializer(source="vacancy.position", read_only=True)
@@ -290,7 +290,7 @@ class CandidateDetailSerializer(serializers.ModelSerializer):
     
     
 class CandidatePartialUpdateSerializer(serializers.ModelSerializer):
-    resume_file = Base64FileField(use_url=True, required=False)
+    resume_file = Base64FileField(use_url=True, required=False, allow_null=True)
 
     class Meta:
         model = Candidate
