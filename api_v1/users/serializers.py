@@ -228,8 +228,11 @@ class CandidateDetailSerializer(serializers.ModelSerializer):
     family_members = CandidateFamilyMemberSerializer(many=True, read_only=True)
     recommendations = CandidateRecommendationSerializer(many=True, required=False)
     organization = serializers.CharField(source="vacancy.department.organization.name")
+    organization_id = serializers.IntegerField(source="vacancy.department.organization.id")
     department = serializers.CharField(source="vacancy.department.name")
     position = PositionSerializer(source="vacancy.position", read_only=True)
+    vacancy = serializers.CharField(source="vacancy.title")
+    vacancy_id = serializers.IntegerField(source="vacancy.id")
     resume_file = Base64FileField(use_url=True)
     
     class Meta:
@@ -237,9 +240,11 @@ class CandidateDetailSerializer(serializers.ModelSerializer):
         fields = (
             "id",
             "organization",
+            "organization_id",
             "department",
             "position",
             "vacancy",
+            "vacancy_id",
             "status",
             "photo",
             "first_name",
