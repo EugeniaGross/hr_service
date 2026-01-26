@@ -417,7 +417,7 @@ def write_created_at(ws, candidate):
         insert_signature(ws, candidate.signature.path, target_row)
     
     
-def insert_signature(ws, signature_path: str, row: int, target_width: int = 50):
+def insert_signature(ws, signature_path: str, row: int, target_width: int = 100):
     """
     Вставляет подпись в указанную строку в диапазон K-N,
     масштабируя пропорционально по ширине.
