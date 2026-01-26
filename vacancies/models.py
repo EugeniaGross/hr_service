@@ -51,6 +51,10 @@ class Vacancy(models.Model):
         verbose_name="Дата создания",
         auto_now_add=True
     )
+    updated_at = models.DateTimeField(
+        "Дата последнего обновления",
+        auto_now=True
+    )
     
     class Meta:
         verbose_name = "вакансия"

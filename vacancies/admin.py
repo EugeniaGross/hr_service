@@ -49,6 +49,7 @@ class VacancyAdmin(ModelAdmin):
         ("Служебная информация", {
             "fields": (
                 "created_by",
+                "updated_at"
             )
         }),
     )

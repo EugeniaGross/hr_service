@@ -99,6 +99,7 @@ class CandidateFamilyMemberInline(TabularInline):
     fields = (
         "relation",
         "birth_year",
+        "birth_date",
         "occupation",
         "residence",
     )
@@ -169,26 +170,23 @@ class CandidateAdmin(ModelAdmin):
         "user",
     )
 
-    readonly_fields = ("created_at",)
+    readonly_fields = ("created_at", "updated_at")
 
     fieldsets = (
-        ("ФИО", {
+        ("Персональные данные", {
             "fields": (
                 "last_name",
                 "first_name",
                 "middle_name",
-            ),
-        }),
-        ("Персональные данные", {
-            "fields": (
                 "photo",
                 "birth_date",
                 "birth_place",
                 "citizenship",
             ),
         }),
-        ("Контакты", {
+        ("Контакты и адрес", {
             "fields": (
+                "email",
                 "phone",
                 "registration_address",
                 "residence_address",
@@ -212,7 +210,8 @@ class CandidateAdmin(ModelAdmin):
         ("Профессиональная информация", {
             "fields": (
                 "vacancy",
-                "language"
+                "language",
+                "resume_file",
             ),
         }),
         ("Анкета", {
@@ -228,11 +227,11 @@ class CandidateAdmin(ModelAdmin):
                 "job_requirements",
                 "work_obstacles",
                 "additional_info",
+                "salary_expectations",
             ),
         }),
-        ("Заработная плата и подпись", {
+        ("Подпись", {
             "fields": (
-                "salary_expectations",
                 "signature",
             ),
         }),
@@ -241,6 +240,7 @@ class CandidateAdmin(ModelAdmin):
                 "user",
                 "created_by",
                 "created_at",
+                "updated_at",
                 "status",
                 "link_expiration",
                 "anonymization_date"
