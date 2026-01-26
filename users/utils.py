@@ -7,7 +7,6 @@ from django.core.mail.backends.smtp import EmailBackend
 from organizations.models import Organization
 from settings.models import Settings
 from users.choices import CandidateStatus, CommunicationLanguage
-from users.models import Candidate
 
 EMAIL_QUESTIONNAIRE_TEMPLATES = {
     "ru": "email_template_ru.html",
@@ -69,7 +68,7 @@ def get_organization_email_connection(org: Organization):
     )
 
 
-def send_candidate_questionnaire(candidate: Candidate):
+def send_candidate_questionnaire(candidate):
     organization = candidate.vacancy.department.organization
     link = build_candidate_link(candidate)
     template_name = get_email_questionnaire_template(candidate.language)
@@ -99,7 +98,7 @@ def send_candidate_questionnaire(candidate: Candidate):
     candidate.save(update_fields=["status"])
     
     
-def send_candidate_anonymization_email(candidate: Candidate):
+def send_candidate_anonymization_email(candidate):
     organization = candidate.vacancy.department.organization
     template_name = get_email_anonymization_template(candidate.language)
     context = {
@@ -123,7 +122,7 @@ def send_candidate_anonymization_email(candidate: Candidate):
     email.send()
     
     
-def send_reset_password_email(candidate: Candidate, reset_link: str):
+def send_reset_password_email(candidate, reset_link: str):
     organization = candidate.vacancy.department.organization
 
     template_name = get_reset_password_template(candidate.language)
@@ -167,7 +166,7 @@ def anonymization_candidate_date():
     return None
 
 
-def build_candidate_link(candidate: Candidate) -> str:
+def build_candidate_link(candidate) -> str:
     organization = candidate.vacancy.department.organization
 
     domain = organization.domain.rstrip("/")

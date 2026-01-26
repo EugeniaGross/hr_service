@@ -4,7 +4,6 @@ import logging
 
 from settings.models import Settings
 from users.choices import CandidateStatus
-from users.models import Candidate
 from users.utils import anonymize_name, send_reset_password_email, send_candidate_anonymization_email, send_candidate_questionnaire
 
 logger = logging.getLogger(__name__)
@@ -17,6 +16,7 @@ logger = logging.getLogger(__name__)
     retry_backoff=True,
 )
 def send_reset_password_email_task(self, candidate_id: int, reset_link: str):
+    from users.models import Candidate
     try:
         candidate = Candidate.objects.get(id=candidate_id)
     except Candidate.DoesNotExist:
@@ -33,6 +33,7 @@ def send_reset_password_email_task(self, candidate_id: int, reset_link: str):
     retry_backoff=True,
 )
 def send_candidate_anonymization_email_task(self, candidate_id: int):
+    from users.models import Candidate
     try:
         candidate = Candidate.objects.get(id=candidate_id)
     except Candidate.DoesNotExist:
@@ -49,6 +50,7 @@ def send_candidate_anonymization_email_task(self, candidate_id: int):
     retry_backoff=True,
 )
 def send_candidate_questionnaire_task(self, candidate_id: int):
+    from users.models import Candidate
     try:
         candidate = Candidate.objects.get(id=candidate_id)
     except Candidate.DoesNotExist:
@@ -68,6 +70,7 @@ def daily_anonymization_task():
     """
     Периодическая задача: каждый день в 12:00 проверяет, нужно ли обезличивать кандидатов.
     """
+    from users.models import Candidate
     settings_obj = Settings.objects.first()
     if not settings_obj or not settings_obj.anonymization_period_days:
         return
@@ -81,7 +84,7 @@ def daily_anonymization_task():
         anonymize_candidate(candidate)
 
 
-def anonymize_candidate(candidate: Candidate):
+def anonymize_candidate(candidate):
     """
     Обезличивает персональные данные кандидата и блокирует пользователя.
     Также запускает отправку письма кандидату.
