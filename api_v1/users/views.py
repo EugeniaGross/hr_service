@@ -448,57 +448,9 @@ class CandidateViewSet(
             "Обезличивание персональных данных кандидата. Доступно hr специалистам."
         )
     )
-    @transaction.atomic
     def destroy(self, request, *args, **kwargs):
         candidate = self.get_object()
-        candidate.first_name = anonymize_name(candidate.first_name)
-        candidate.last_name = anonymize_name(candidate.last_name)
-        candidate.middle_name = anonymize_name(candidate.middle_name)
-        candidate.anonymization_date = timezone.localdate()
-        candidate.status = CandidateStatus.ANONYMIZED
-        if candidate.photo:
-            candidate.photo.delete(save=False)
-        candidate.photo = None
-        candidate.birth_date = None
-        candidate.birth_place = ""
-        candidate.citizenship = ""
-        candidate.phone = ""
-        candidate.registration_address = ""
-        candidate.residence_address = ""
-        candidate.passport_series = ""
-        candidate.passport_number = ""
-        candidate.passport_issued_by = ""
-        candidate.passport_issued_at = None
-        candidate.driver_license_number = ""
-        candidate.driver_license_issue_date = None
-        candidate.driver_license_categories = ""
-        candidate.foreign_languages = ""
-        candidate.military_service = ""
-        candidate.disqualification = ""
-        candidate.management_experience = ""
-        candidate.health_restrictions = ""
-        candidate.vacancy_source = ""
-        candidate.acquaintances_in_company = ""
-        candidate.allow_reference_check = None
-        candidate.job_requirements = ""
-        candidate.work_obstacles = ""
-        candidate.additional_info = ""
-        candidate.salary_expectations = ""
-        if candidate.signature:
-            candidate.signature.delete(save=False)
-        candidate.signature = None
-        if candidate.resume_file:
-            candidate.resume_file.delete(save=False)
-        candidate.resume_file = None
-        candidate.recommendations.all().delete()
-        candidate.educations.all().delete()
-        candidate.employments.all().delete()
-        candidate.family_members.all().delete()
-        candidate.save()
-        candidate.user.is_active = False
-        candidate.user.set_unusable_password()
-        candidate.user.save(update_fields=["is_active", "password"])
-        send_candidate_anonymization_email_task.delay(candidate.id)
+        candidate.anonymize()
         return Response(
             {"detail": "Персональные данные кандидата успешно обезличены."},
             status=status.HTTP_200_OK

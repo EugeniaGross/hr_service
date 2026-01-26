@@ -4,9 +4,12 @@ from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
+from django.db import transaction
 
 from users.choices import CandidateStatus, CommunicationLanguage, EducationForm
 from users.managers import UserManager
+from users.tasks import send_candidate_anonymization_email_task
+from users.utils import anonymize_name
 from users.validators import validate_graduation_year
 from vacancies.models import Vacancy
 
@@ -223,6 +226,57 @@ class Candidate(models.Model):
         
     def is_link_valid(self):
         return timezone.now() <= self.link_expiration
+    
+    def anonymize(self):
+        with transaction.atomic():
+            self.first_name = anonymize_name(self.first_name)
+            self.last_name = anonymize_name(self.last_name)
+            self.middle_name = anonymize_name(self.middle_name)
+            self.anonymization_date = timezone.localdate()
+            self.status = CandidateStatus.ANONYMIZED
+            if self.photo:
+                self.photo.delete(save=False)
+            self.photo = None
+            self.birth_date = None
+            self.birth_place = ""
+            self.citizenship = ""
+            self.phone = ""
+            self.registration_address = ""
+            self.residence_address = ""
+            self.passport_series = ""
+            self.passport_number = ""
+            self.passport_issued_by = ""
+            self.passport_issued_at = None
+            self.driver_license_number = ""
+            self.driver_license_issue_date = None
+            self.driver_license_categories = ""
+            self.foreign_languages = ""
+            self.military_service = ""
+            self.disqualification = ""
+            self.management_experience = ""
+            self.health_restrictions = ""
+            self.vacancy_source = ""
+            self.acquaintances_in_company = ""
+            self.allow_reference_check = None
+            self.job_requirements = ""
+            self.work_obstacles = ""
+            self.additional_info = ""
+            self.salary_expectations = ""
+            if self.signature:
+                self.signature.delete(save=False)
+            self.signature = None
+            if self.resume_file:
+                self.resume_file.delete(save=False)
+            self.resume_file = None
+            self.recommendations.all().delete()
+            self.educations.all().delete()
+            self.employments.all().delete()
+            self.family_members.all().delete()
+            self.save()
+            self.user.is_active = False
+            self.user.set_unusable_password()
+            self.user.save(update_fields=["is_active", "password"])
+            send_candidate_anonymization_email_task.delay(self.id)
     
     def __str__(self):
         return f"{self.last_name} {self.first_name}"

@@ -7,6 +7,7 @@ from django.db.models import Case, When, Value, IntegerField
 from unfold.forms import AdminPasswordChangeForm, UserChangeForm, UserCreationForm
 from unfold.admin import ModelAdmin, TabularInline
 
+from users.choices import CandidateStatus
 from users.models import Candidate, CandidateEducation, CandidateEmployment, CandidateFamilyMember, CandidateRecommendation
 
 User = get_user_model()
@@ -258,4 +259,16 @@ class CandidateAdmin(ModelAdmin):
 
     has_user.boolean = True
     has_user.short_description = "Есть доступ"
+    
+    def save_model(self, request, obj, form, change):
+        if change:
+            old = Candidate.objects.get(pk=obj.pk)
 
+            if (
+                old.status != CandidateStatus.ANONYMIZED
+                and obj.status == CandidateStatus.ANONYMIZED
+            ):
+                obj.anonymize()
+                return
+
+        super().save_model(request, obj, form, change)
