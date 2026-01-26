@@ -30,7 +30,7 @@ from api_v1.users.serializers import CandidateCreateSerializer, CandidateDetailS
 from api_v1.users.utils import RU_MONTHS, EN_MONTHS, FR_MONTHS, get_questionnaire_ru_xlsx, get_questionnaire_en_xlsx, get_questionnaire_fr_xlsx, DocumentService
 from users.models import Candidate
 from users.choices import CandidateStatus, CommunicationLanguage
-from users.tasks import send_reset_password_email_task, send_candidate_anonymization_email_task, send_candidate_questionnaire_task
+from users.tasks import send_reset_password_email_task, send_candidate_anonymization_email_task, send_candidate_questionnaire_task, send_reset_password_email_hr_task
 from users.utils import anonymization_candidate_date, calculate_candidate_link_expiration, anonymize_name
 
 User = get_user_model()
@@ -211,31 +211,56 @@ class SetPasswordAPIView(CookiesTokenMixin, APIView):
         )
         
 
-@extend_schema(tags=["Auth"])        
+@extend_schema(tags=["Auth"])
 class ForgotPasswordAPIView(APIView):
     permission_classes = [AllowAny]
     serializer_class = ForgotPasswordSerializer
 
     @extend_schema(
-        description=("Сброс пароля. Необходимо передать uuid из ссылки на анкету кандидата"),
+        description=("Сброс пароля. Для кандидатов необходимо передать uuid из ссылки на анкету. Для HR-специалистов uuid можно не передавать."),
     )
     def post(self, request):
         serializer = ForgotPasswordSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        uuid = serializer.validated_data["uuid"]
+        uuid = serializer.validated_data.get("uuid")
         email = serializer.validated_data["email"]
-        try:
-            profile = Candidate.objects.get(access_uuid=uuid, user__email=email)
-        except Candidate.DoesNotExist:
+
+        # Логика для кандидатов (с UUID)
+        if uuid:
+            try:
+                profile = Candidate.objects.get(access_uuid=uuid, user__email=email)
+            except Candidate.DoesNotExist:
+                return Response({"detail": "Письмо для сброса пароля отправлено"}, status=200)
+            if not profile.is_link_valid():
+                return Response({"detail": "Срок действия ссылки кандидата истёк"}, status=403)
+            user = profile.user
+            token = default_token_generator.make_token(user)
+            domain = profile.vacancy.department.organization.domain
+            reset_link = f"https://{domain}/questionnaires/{profile.language}/{uuid}/reset_password?token={token}"
+            send_reset_password_email_task.delay(profile.id, reset_link)
             return Response({"detail": "Письмо для сброса пароля отправлено"}, status=200)
-        if not profile.is_link_valid():
-            return Response({"detail": "Срок действия ссылки кандидата истёк"}, status=403)
-        user = profile.user
-        token = default_token_generator.make_token(user)
-        domain = profile.vacancy.department.organization.domain
-        reset_link = f"https://{domain}/questionnaires/{profile.language}/{uuid}/reset_password?token={token}"
-        send_reset_password_email_task.delay(profile.id, reset_link)
-        return Response({"detail": "Письмо для сброса пароля отправлено"}, status=200)
+
+        # Логика для HR-специалистов (без UUID)
+        else:
+            try:
+                user = User.objects.get(email=email, role="hr")
+            except User.DoesNotExist:
+                # По соображениям безопасности возвращаем успех даже если пользователь не найден
+                return Response({"detail": "Письмо для сброса пароля отправлено"}, status=200)
+
+            token = default_token_generator.make_token(user)
+            # Для HR используем домен из settings или первую организацию
+            from organizations.models import Organization
+            try:
+                organization = Organization.objects.first()
+                domain = organization.domain if organization else settings.ALLOWED_HOSTS[0]
+            except:
+                domain = settings.ALLOWED_HOSTS[0] if settings.ALLOWED_HOSTS else "localhost"
+
+            reset_link = f"https://{domain}/reset-password/{token}"
+            send_reset_password_email_hr_task.delay(user.email, reset_link)
+
+            return Response({"detail": "Письмо для сброса пароля отправлено"}, status=200)
 
 
 @extend_schema(tags=["Auth"])
@@ -244,25 +269,47 @@ class ResetPasswordAPIView(APIView):
     serializer_class = ResetPasswordSerializer
 
     @extend_schema(
-        description=("Установка нового пароля. Необходимо передать uuid из ссылки на анкету кандидата и token для восстановления пароля"),
+        description=("Установка нового пароля. Для кандидатов необходимо передать uuid из ссылки на анкету и token для восстановления пароля. Для HR-специалистов uuid можно не передавать."),
     )
     def post(self, request):
         serializer = ResetPasswordSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        uuid = serializer.validated_data["uuid"]
-        try:
-            profile = Candidate.objects.get(access_uuid=uuid)
-        except Candidate.DoesNotExist:
-            return Response({"detail": "Ссылка недействительна"}, status=404)
-        if not profile.is_link_valid():
-            return Response({"detail": "Срок действия ссылки кандидата истёк"}, status=403)
-        user = profile.user
+        uuid = serializer.validated_data.get("uuid")
         token = serializer.validated_data["token"]
-        if not default_token_generator.check_token(user, token):
-            return Response({"detail": "Ссылка для сброса пароля недействительна или устарела"}, status=403)
-        user.set_password(serializer.validated_data["password"])
-        user.save()
-        return Response({"detail": "Пароль успешно установлен"}, status=200)
+        password = serializer.validated_data["password"]
+
+        # Логика для кандидатов (с UUID)
+        if uuid:
+            try:
+                profile = Candidate.objects.get(access_uuid=uuid)
+            except Candidate.DoesNotExist:
+                return Response({"detail": "Ссылка недействительна"}, status=404)
+            if not profile.is_link_valid():
+                return Response({"detail": "Срок действия ссылки кандидата истёк"}, status=403)
+            user = profile.user
+            if not default_token_generator.check_token(user, token):
+                return Response({"detail": "Ссылка для сброса пароля недействительна или устарела"}, status=403)
+            user.set_password(password)
+            user.save()
+            return Response({"detail": "Пароль успешно установлен"}, status=200)
+
+        # Логика для HR-специалистов (без UUID)
+        else:
+            # Пробуем найти HR-пользователя по токену
+            # Перебираем всех HR пользователей и проверяем токен
+            hr_users = User.objects.filter(role="hr")
+            user = None
+            for hr_user in hr_users:
+                if default_token_generator.check_token(hr_user, token):
+                    user = hr_user
+                    break
+
+            if not user:
+                return Response({"detail": "Ссылка для сброса пароля недействительна или устарела"}, status=403)
+
+            user.set_password(password)
+            user.save()
+            return Response({"detail": "Пароль успешно установлен"}, status=200)
 
 
 @extend_schema(tags=["Candidats"]) 

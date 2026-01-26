@@ -24,13 +24,13 @@ class SetPasswordSerializer(serializers.Serializer):
     
 class ForgotPasswordSerializer(serializers.Serializer):
     email = serializers.EmailField(write_only=True)
-    uuid = serializers.UUIDField(write_only=True)
-    
-    
+    uuid = serializers.UUIDField(write_only=True, required=False, allow_null=True)
+
+
 class ResetPasswordSerializer(serializers.Serializer):
     token = serializers.CharField(write_only=True)
     password = serializers.CharField(write_only=True)
-    uuid = serializers.UUIDField(write_only=True)
+    uuid = serializers.UUIDField(write_only=True, required=False, allow_null=True)
     
     
 class CandidateEducationSerializer(serializers.ModelSerializer):

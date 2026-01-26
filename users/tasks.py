@@ -4,7 +4,7 @@ import logging
 
 from settings.models import Settings
 from users.choices import CandidateStatus
-from users.utils import anonymize_name, send_reset_password_email, send_candidate_anonymization_email, send_candidate_questionnaire
+from users.utils import anonymize_name, send_reset_password_email, send_candidate_anonymization_email, send_candidate_questionnaire, send_reset_password_email_hr
 
 logger = logging.getLogger(__name__)
 
@@ -24,8 +24,25 @@ def send_reset_password_email_task(self, candidate_id: int, reset_link: str):
         return
 
     send_reset_password_email(candidate, reset_link)
-    
-    
+
+
+@shared_task(
+    bind=True,
+    autoretry_for=(Exception,),
+    retry_kwargs={"max_retries": 3, "countdown": 30},
+    retry_backoff=True,
+)
+def send_reset_password_email_hr_task(self, user_email: str, reset_link: str):
+    """Таск для отправки письма для сброса пароля HR-специалистам"""
+    from organizations.models import Organization
+    try:
+        organization = Organization.objects.first()
+    except Organization.DoesNotExist:
+        organization = None
+
+    send_reset_password_email_hr(user_email, reset_link, organization)
+
+
 @shared_task(
     bind=True,
     autoretry_for=(Exception,),

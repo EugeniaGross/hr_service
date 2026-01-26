@@ -181,3 +181,44 @@ def anonymize_name(name: str) -> str:
     if not name:
         return ""
     return name[0] + "*" * (len(name) - 1)
+
+
+def send_reset_password_email_hr(user_email: str, reset_link: str, organization: Organization = None):
+    """Отправка письма для сброса пароля HR-специалистам"""
+    if not organization:
+        organization = Organization.objects.first()
+
+    if not organization:
+        # Если нет организации, используем стандартный email backend Django
+        from django.core.mail import send_mail
+        from django.conf import settings
+        subject = "Сброс пароля"
+        message = f"Для сброса пароля перейдите по ссылке: {reset_link}"
+        send_mail(
+            subject,
+            message,
+            settings.DEFAULT_FROM_EMAIL,
+            [user_email],
+            fail_silently=False,
+        )
+        return
+
+    template_name = EMAIL_RESET_PASSWORD_TEMPLATES["ru"]  # Для HR используем русский по умолчанию
+    context = {
+        "organization_name": organization.name,
+        "reset_link": reset_link,
+    }
+
+    html_body = render_to_string(template_name, context)
+    subject = "Сброс пароля"
+
+    email = EmailMultiAlternatives(
+        subject=subject,
+        body="",
+        from_email=organization.email,
+        to=[user_email],
+        connection=get_organization_email_connection(organization),
+    )
+
+    email.attach_alternative(html_body, "text/html")
+    email.send()
