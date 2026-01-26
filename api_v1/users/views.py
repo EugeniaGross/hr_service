@@ -490,10 +490,10 @@ class CandidateViewSet(
         if candidate.resume_file:
             candidate.resume_file.delete(save=False)
         candidate.resume_file = None
-        candidate.recommendations.delete()
-        candidate.educations.delete()
-        candidate.employments.delete()
-        candidate.family_members.delete()
+        candidate.recommendations.all().delete()
+        candidate.educations.all().delete()
+        candidate.employments.all().delete()
+        candidate.family_members.all().delete()
         candidate.save()
         candidate.user.is_active = False
         candidate.user.set_unusable_password()
