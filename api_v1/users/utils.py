@@ -417,7 +417,7 @@ def write_created_at(ws, candidate):
         insert_signature(ws, candidate.signature.path, target_row)
     
     
-def insert_signature(ws, signature_path: str, row: int, target_width: int = 150):
+def insert_signature(ws, signature_path: str, row: int, target_width: int = 50):
     """
     Вставляет подпись в указанную строку в диапазон K-N,
     масштабируя пропорционально по ширине.
@@ -436,7 +436,7 @@ def insert_signature(ws, signature_path: str, row: int, target_width: int = 150)
     img.height = target_height
 
     # Вставляем в ячейку K{row}
-    cell_address = f'K{row}'
+    cell_address = f'K{row-1}'
     ws.add_image(img, cell_address)
     
 
