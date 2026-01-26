@@ -217,6 +217,7 @@ class CandidateListSerializer(serializers.ModelSerializer):
             "vacancy_id",
             "anonymization_date",
             "resume_file",
+            "created_at",
             "language"
         )
 
