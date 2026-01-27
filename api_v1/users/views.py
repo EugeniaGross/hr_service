@@ -595,7 +595,7 @@ class CandidateLinkCheckAPIView(APIView):
             return Response({"valid": False}, status=status.HTTP_404_NOT_FOUND)
 
         link_valid = candidate.is_link_valid()
-        password_set = candidate.user.has_usable_password() if candidate.user else False
+        password_set = True if candidate.password else False
 
         return Response(
             {
