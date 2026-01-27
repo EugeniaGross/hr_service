@@ -8,6 +8,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth import authenticate
 from django.contrib.auth.tokens import default_token_generator
+import jwt
 from rest_framework import status, viewsets, mixins
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -22,13 +23,16 @@ from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.permissions import AllowAny
 from django.http import FileResponse
+from rest_framework.exceptions import NotFound, PermissionDenied, AuthenticationFailed
 
+from api_v1.auth_classes import CandidateJWTAuthentication
 from api_v1.mixins import CookiesTokenMixin, UpdateModelMixin
 from api_v1.permissions import IsCandidateWithValidLink, IsHRPermission
 from api_v1.users.filters import CandidateFilter
 from api_v1.users.serializers import CandidateCreateSerializer, CandidateDetailSerializer, CandidateListSerializer, CandidatePartialUpdateSerializer, ResetPasswordSerializer, CandidateSerializer, ForgotPasswordSerializer, SetPasswordSerializer, UserLoginSerializer
 from api_v1.users.utils import RU_MONTHS, EN_MONTHS, FR_MONTHS, get_questionnaire_ru_xlsx, get_questionnaire_en_xlsx, get_questionnaire_fr_xlsx, DocumentService
-from users.models import Candidate
+from api_v1.utils import generate_candidate_jwt_access_token, generate_candidate_jwt_refresh_token, candidate_token_generator
+from users.models import Candidate, CandidateRefreshToken
 from users.choices import CandidateStatus, CommunicationLanguage
 from users.tasks import send_reset_password_email_task, send_candidate_anonymization_email_task, send_candidate_questionnaire_task, send_reset_password_email_hr_task
 from users.utils import anonymization_candidate_date, calculate_candidate_link_expiration, anonymize_name
@@ -56,25 +60,32 @@ class LoginAPIView(CookiesTokenMixin, APIView):
             return Response({"detail": "Email и пароль обязательны"}, status=400)
         
         if uuid:
-            self.check_candidate(uuid)
-        user = authenticate(request, email=email, password=password)
-        if user is None:
-            return Response({"detail": "Неверные учетные данные"}, status=401)
-        if user and not uuid and user.role != "hr":
-            return Response({"detail": "Доступ запрещен"}, status=403)
-        response = self._get_tokens_for_user(user)
-        return self.add_refresh_token_in_cookies(response, user.role)
+            candidate = self.get_candidate(uuid, password)
+            response = self._get_tokens_for_candidate(candidate)
+            return self.add_refresh_token_in_cookies(response, candidate.user.role)
+        else:
+            user = authenticate(request, email=email, password=password)
+            if user is None:
+                return Response({"detail": "Неверные учетные данные"}, status=401)
+            if user and user.role != "hr":
+                return Response({"detail": "Доступ запрещен"}, status=403)
+            response = self._get_tokens_for_user(user)
+            return self.add_refresh_token_in_cookies(response, user.role)
     
-    def check_candidate(self, uuid):
+    def get_candidate(self, uuid, password):
         try:
             profile = Candidate.objects.get(access_uuid=uuid)
         except Candidate.DoesNotExist:
-            return Response({"detail": "Ссылка недействительна"}, status=404)
+            raise NotFound("Ссылка недействительна")
         if not profile.is_link_valid():
-            return Response({"detail": "Срок действия ссылки кандидата истек"}, status=403)
-        user = profile.user
-        if not user.has_usable_password():
-            return Response({"detail": "Пароль ещё не установлен"}, status=400)
+            raise PermissionDenied("Срок действия ссылки кандидата истёк")
+        if not profile.password:
+            raise AuthenticationFailed("Пароль ещё не установлен")
+        if not profile.check_password(password):
+            raise AuthenticationFailed("Неверные учетные данные")
+        if profile.user.role != "candidate":
+            raise PermissionDenied("Доступ запрещен")
+        return profile
         
     def _get_tokens_for_user(self, user):
         refresh = RefreshToken.for_user(user)
@@ -86,11 +97,21 @@ class LoginAPIView(CookiesTokenMixin, APIView):
             },
             status=status.HTTP_200_OK,
         )
+        
+    def _get_tokens_for_candidate(self, candidate: Candidate):
+        return Response(
+            {
+                "refresh": generate_candidate_jwt_refresh_token(candidate),
+                "access": generate_candidate_jwt_access_token(candidate),
+                "type": "Bearer",
+            },
+            status=status.HTTP_200_OK,
+        )
 
 
 @extend_schema(tags=["Auth"])
 class CustomTokenRefreshView(CookiesTokenMixin, TokenRefreshView):
-    permission_classes = []
+    permission_classes = [AllowAny]
     serializer_class = None
 
     @extend_schema(
@@ -107,10 +128,47 @@ class CustomTokenRefreshView(CookiesTokenMixin, TokenRefreshView):
                 {"detail": "Refresh токен не найден в cookies."},
                 status=status.HTTP_401_UNAUTHORIZED,
             )
+            
+        try:
+            payload = jwt.decode(refresh_token, settings.SIMPLE_JWT["SIGNING_KEY"], algorithms=["HS256"])
+        except jwt.ExpiredSignatureError:
+            return Response({"detail": "Refresh токен истёк."}, status=status.HTTP_401_UNAUTHORIZED)
+        except jwt.InvalidTokenError:
+            return Response({"detail": "Неверный refresh токен."}, status=status.HTTP_401_UNAUTHORIZED)
 
+        if payload.get("type") == "candidate_access" and payload.get("token_type") == "refresh":
+            return self._refresh_candidate_token(payload)
+
+        return self._refresh_user_token(request, refresh_token, *args, **kwargs)
+    
+    def _refresh_candidate_token(self, payload):
+        candidate_id = payload.get("candidate_id")
+        jti = payload.get("jti")
+
+        try:
+            candidate_token = CandidateRefreshToken.objects.get(token=jti, candidate_id=candidate_id)
+        except CandidateRefreshToken.DoesNotExist:
+            return Response({"detail": "Refresh токен недействителен."}, status=status.HTTP_401_UNAUTHORIZED)
+
+        if candidate_token.expires_at < timezone.now():
+            candidate_token.delete()
+            return Response({"detail": "Refresh токен истёк."}, status=status.HTTP_401_UNAUTHORIZED)
+
+        candidate = Candidate.objects.get(id=candidate_id)
+
+        access = generate_candidate_jwt_access_token(candidate)
+        refresh = generate_candidate_jwt_refresh_token(candidate)
+
+        candidate_token.delete()
+
+        data = {"access": access, "refresh": refresh, "type": "Bearer"}
+        response = Response(data, status=200)
+        return self.add_refresh_token_in_cookies(response, candidate.user.role)
+    
+    def _refresh_user_token(self, request, refresh_token, *args, **kwargs):
         request.data["refresh"] = refresh_token
         response = super().post(request, *args, **kwargs)
-        return self.add_refresh_token_in_cookies(response)
+        return self.add_refresh_token_in_cookies(response, role="hr")
     
     
 @extend_schema(tags=["Auth"])
@@ -122,6 +180,27 @@ class LogoutAPIView(APIView):
         request={},
     )
     def post(self, request):
+        refresh_token = request.COOKIES.get(settings.SIMPLE_JWT["AUTH_COOKIE_REFRESH"])
+        if refresh_token:
+            try:
+                payload = jwt.decode(
+                    refresh_token,
+                    settings.SIMPLE_JWT["SIGNING_KEY"],
+                    algorithms=["HS256"],
+                )
+                if (
+                    payload.get("type") == "candidate_access"
+                    and payload.get("token_type") == "refresh"
+                ):
+                    CandidateRefreshToken.objects.filter(
+                        token=payload.get("jti"),
+                        candidate_id=payload.get("candidate_id"),
+                    ).delete()
+
+            except jwt.ExpiredSignatureError:
+                pass
+            except jwt.InvalidTokenError:
+                pass
         response = Response(status=status.HTTP_204_NO_CONTENT)
         response.delete_cookie(settings.SIMPLE_JWT["AUTH_COOKIE_REFRESH"])
         return response
@@ -129,36 +208,23 @@ class LogoutAPIView(APIView):
 
 @extend_schema(tags=["Questionnaires"])
 class CandidateProfileDetailAPIView(APIView):
+    authentication_classes = [CandidateJWTAuthentication]
     permission_classes = [IsCandidateWithValidLink]
     serializer_class = CandidateSerializer
 
-    def get_object(self, **kwargs):
-        """
-        Возвращает объект Candidate по UUID и lang или None
-        """
-        uuid = self.kwargs.get("uuid")
-        lang = self.kwargs.get("lang")
-        try:
-            return Candidate.objects.get(access_uuid=uuid, language=lang)
-        except Candidate.DoesNotExist:
-            return None
-
     @extend_schema(description="Получение анкеты кандидата. Доступно кандидатам.")
     def get(self, request, *args, **kwargs):
-        profile = self.get_object()
-        if profile is None:
-            return Response({"detail": "Кандидат не найден"}, status=404)
-        user = profile.user
-        if not user.has_usable_password():
+        profile = request.auth
+        if not profile.password:
             return Response({"password_set": False}, status=200)
         serializer = CandidateSerializer(profile, context={"request": self.request})
         return Response(serializer.data)
 
     @extend_schema(description="Изменение анкеты кандидата. Доступно кандидатам.")
     def patch(self, request, *args, **kwargs):
-        profile = self.get_object()
-        if profile is None:
-            return Response({"detail": "Кандидат не найден"}, status=404)
+        profile = request.auth
+        if not profile.password:
+            return Response({"password_set": False}, status=200)
         serializer = CandidateSerializer(profile, data=request.data, partial=True, context={"request": self.request})
         serializer.is_valid(raise_exception=True)
         serializer.save()
@@ -188,23 +254,20 @@ class SetPasswordAPIView(CookiesTokenMixin, APIView):
         if not profile.is_link_valid():
             return Response({"detail": "Срок действия ссылки кандидата истёк"}, status=403)
 
-        user = profile.user
-        if user.has_usable_password():
+        if profile.password:
             return Response({"detail": "Пароль уже установлен"}, status=400)
 
-        user.set_password(serializer.validated_data["password"])
-        user.is_active = True
-        user.save()
+        profile.set_password(serializer.validated_data["password"])
+        profile.save()
 
-        response = self._get_tokens_for_user(user)
-        return self.add_refresh_token_in_cookies(response)
+        response = self._get_tokens_for_candidate(profile)
+        return self.add_refresh_token_in_cookies(response, profile.user.role)
 
-    def _get_tokens_for_user(self, user):
-        refresh = RefreshToken.for_user(user)
+    def _get_tokens_for_candidate(self, candidate: Candidate):
         return Response(
             {
-                "refresh": str(refresh),
-                "access": str(refresh.access_token),
+                "refresh": generate_candidate_jwt_refresh_token(candidate),
+                "access": generate_candidate_jwt_access_token(candidate),
                 "type": "Bearer",
             },
             status=status.HTTP_200_OK,
@@ -224,8 +287,6 @@ class ForgotPasswordAPIView(APIView):
         serializer.is_valid(raise_exception=True)
         uuid = serializer.validated_data.get("uuid")
         email = serializer.validated_data["email"]
-
-        # Логика для кандидатов (с UUID)
         if uuid:
             try:
                 profile = Candidate.objects.get(access_uuid=uuid, user__email=email)
@@ -234,31 +295,23 @@ class ForgotPasswordAPIView(APIView):
             if not profile.is_link_valid():
                 return Response({"detail": "Срок действия ссылки кандидата истёк"}, status=403)
             user = profile.user
-            token = default_token_generator.make_token(user)
+            token = candidate_token_generator.make_token(profile)
             domain = profile.vacancy.department.organization.domain
             reset_link = f"https://{domain}/questionnaires/{profile.language}/{uuid}/reset_password?token={token}"
             send_reset_password_email_task.delay(profile.id, reset_link)
             return Response({"detail": "Письмо для сброса пароля отправлено"}, status=200)
-
-        # Логика для HR-специалистов (без UUID)
         else:
             try:
                 user = User.objects.get(email=email, role="hr")
             except User.DoesNotExist:
-                # По соображениям безопасности возвращаем успех даже если пользователь не найден
                 return Response({"detail": "Письмо для сброса пароля отправлено"}, status=200)
 
             token = default_token_generator.make_token(user)
-            # Для HR используем домен из settings или первую организацию
-            from organizations.models import Organization
-            try:
-                organization = Organization.objects.first()
-                domain = organization.domain if organization else settings.ALLOWED_HOSTS[0]
-            except:
-                domain = settings.ALLOWED_HOSTS[0] if settings.ALLOWED_HOSTS else "localhost"
-
-            reset_link = f"https://{domain}/reset-password/{token}"
-            send_reset_password_email_hr_task.delay(user.email, reset_link)
+            domain = request.get_host()
+            scheme = "https" if request.is_secure() else "http"
+            reset_link = f"{scheme}://{domain}/reset-password/{token}"
+            site_url = f"{scheme}://{domain}"
+            send_reset_password_email_hr_task.delay(user.email, reset_link, site_url)
 
             return Response({"detail": "Письмо для сброса пароля отправлено"}, status=200)
 
@@ -277,8 +330,6 @@ class ResetPasswordAPIView(APIView):
         uuid = serializer.validated_data.get("uuid")
         token = serializer.validated_data["token"]
         password = serializer.validated_data["password"]
-
-        # Логика для кандидатов (с UUID)
         if uuid:
             try:
                 profile = Candidate.objects.get(access_uuid=uuid)
@@ -287,32 +338,25 @@ class ResetPasswordAPIView(APIView):
             if not profile.is_link_valid():
                 return Response({"detail": "Срок действия ссылки кандидата истёк"}, status=403)
             user = profile.user
-            if not default_token_generator.check_token(user, token):
+            if not candidate_token_generator.check_token(profile, token):
                 return Response({"detail": "Ссылка для сброса пароля недействительна или устарела"}, status=403)
-            user.set_password(password)
-            user.save()
+            profile.set_password(password)
+            profile.save()
             return Response({"detail": "Пароль успешно установлен"}, status=200)
-
-        # Логика для HR-специалистов (без UUID)
         else:
-            # Пробуем найти HR-пользователя по токену
-            # Перебираем всех HR пользователей и проверяем токен
-            hr_users = User.objects.filter(role="hr")
             user = None
-            for hr_user in hr_users:
+            for hr_user in User.objects.filter(role="hr"):
                 if default_token_generator.check_token(hr_user, token):
                     user = hr_user
                     break
-
             if not user:
                 return Response({"detail": "Ссылка для сброса пароля недействительна или устарела"}, status=403)
-
             user.set_password(password)
             user.save()
             return Response({"detail": "Пароль успешно установлен"}, status=200)
 
 
-@extend_schema(tags=["Candidats"]) 
+@extend_schema(tags=["Candidates"]) 
 class CandidateViewSet(
     mixins.CreateModelMixin,
     mixins.ListModelMixin,
@@ -339,14 +383,11 @@ class CandidateViewSet(
     @transaction.atomic
     def perform_create(self, serializer):
         email = serializer.validated_data["email"]
-        user, created = User.objects.get_or_create(
+        user, _ = User.objects.get_or_create(
             email=email,
             role="candidate",
             defaults={"is_active": False}
         )
-        if created:
-            user.set_unusable_password()
-            user.save()
         serializer.save(
             user=user,
             created_by=self.request.user,
@@ -360,15 +401,12 @@ class CandidateViewSet(
         new_email = serializer.validated_data.get("email")
         old_user = candidate.user
         if new_email and new_email != old_user.email:
-            user, created = User.objects.get_or_create(
+            user, _ = User.objects.get_or_create(
                 email=new_email,
                 defaults={"is_active": False}
             )
-            if created:
-                user.set_unusable_password()
-                user.save()
             candidate.user = user
-            serializer.save(user=user, status=CandidateStatus.NEW)
+            serializer.save(user=user, status=CandidateStatus.NEW, password=None)
         else:
             serializer.save(
                 status = CandidateStatus.NEW

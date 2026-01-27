@@ -27,11 +27,10 @@ class UserAdmin(BaseUserAdmin, ModelAdmin):
     list_display = (
         "email",
         "role",
-        "is_active",
         "is_staff",
         "is_superuser",
     )
-    list_filter = ("role", "is_active", "is_staff")
+    list_filter = ("role", "is_staff", "is_superuser",)
 
     search_fields = ("email",)
 
@@ -63,6 +62,22 @@ class UserAdmin(BaseUserAdmin, ModelAdmin):
     )
 
     readonly_fields = ("last_login", "date_joined")
+    
+    def get_fieldsets(self, request, obj=None):
+        """Если объект — кандидат, убираем поле password"""
+        fieldsets = super().get_fieldsets(request, obj)
+        if obj and obj.role == "candidate":
+            fieldsets = list(fieldsets)
+            new_fieldsets = []
+            for name, options in fieldsets:
+                fields = list(options.get("fields", []))
+                if "password" in fields:
+                    fields.remove("password")
+                if "is_active" in fields:
+                    fields.remove("is_active")
+                new_fieldsets.append((name, {"fields": fields}))
+            return new_fieldsets
+        return fieldsets
     
     
 class CandidateEducationInline(TabularInline):

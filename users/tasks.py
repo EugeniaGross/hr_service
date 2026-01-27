@@ -32,15 +32,9 @@ def send_reset_password_email_task(self, candidate_id: int, reset_link: str):
     retry_kwargs={"max_retries": 3, "countdown": 30},
     retry_backoff=True,
 )
-def send_reset_password_email_hr_task(self, user_email: str, reset_link: str):
+def send_reset_password_email_hr_task(self, user_email: str, reset_link: str, site_url: str):
     """Таск для отправки письма для сброса пароля HR-специалистам"""
-    from organizations.models import Organization
-    try:
-        organization = Organization.objects.first()
-    except Organization.DoesNotExist:
-        organization = None
-
-    send_reset_password_email_hr(user_email, reset_link, organization)
+    send_reset_password_email_hr(user_email, reset_link, site_url)
 
 
 @shared_task(

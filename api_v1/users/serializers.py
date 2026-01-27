@@ -169,7 +169,7 @@ class CandidateSerializer(serializers.ModelSerializer):
     
     
 class CandidateCreateSerializer(serializers.ModelSerializer):
-    resume_file = Base64FileField(use_url=True, required=False)
+    resume_file = Base64FileField(use_url=True, required=False, allow_null=True)
 
     class Meta:
         model = Candidate

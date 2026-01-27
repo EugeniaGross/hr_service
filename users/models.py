@@ -1,4 +1,4 @@
-from datetime import timedelta
+from django.contrib.auth.hashers import make_password, check_password
 import uuid
 from django.contrib.auth.models import AbstractUser
 from django.db import models
@@ -45,6 +45,7 @@ class User(AbstractUser):
         
 
 class Candidate(models.Model):
+    password = models.CharField(max_length=128, blank=True)
     status = models.CharField(
         verbose_name="Статус кандидата",
         max_length=20,
@@ -227,6 +228,12 @@ class Candidate(models.Model):
     def is_link_valid(self):
         return timezone.now() <= self.link_expiration
     
+    def set_password(self, raw_password):
+        self.password = make_password(raw_password)
+
+    def check_password(self, raw_password):
+        return check_password(raw_password, self.password)
+    
     def anonymize(self):
         with transaction.atomic():
             self.first_name = anonymize_name(self.first_name)
@@ -272,10 +279,8 @@ class Candidate(models.Model):
             self.educations.all().delete()
             self.employments.all().delete()
             self.family_members.all().delete()
+            self.password = ""
             self.save()
-            self.user.is_active = False
-            self.user.set_unusable_password()
-            self.user.save(update_fields=["is_active", "password"])
             send_candidate_anonymization_email_task.delay(self.id)
     
     def __str__(self):
@@ -436,3 +441,18 @@ class CandidateFamilyMember(models.Model):
 
     def __str__(self):
         return self.relation
+
+
+class CandidateRefreshToken(models.Model):
+    candidate = models.ForeignKey(
+        Candidate,
+        on_delete=models.CASCADE,
+        related_name="refresh_tokens"
+    )
+    token = models.CharField(max_length=255, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    is_revoked = models.BooleanField(default=False)
+
+    def is_valid(self):
+        return not self.is_revoked and timezone.now() < self.expires_at

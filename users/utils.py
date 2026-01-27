@@ -1,4 +1,5 @@
 from datetime import timedelta
+from django.conf import settings
 from django.utils import timezone
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
@@ -151,7 +152,6 @@ def send_reset_password_email(candidate, reset_link: str):
     email.send()
 
 
-
 def calculate_candidate_link_expiration() -> timezone.datetime | None:
     settings = Settings.objects.first()
     hours = settings.link_expiration_hours if settings else 72
@@ -183,42 +183,22 @@ def anonymize_name(name: str) -> str:
     return name[0] + "*" * (len(name) - 1)
 
 
-def send_reset_password_email_hr(user_email: str, reset_link: str, organization: Organization = None):
+def send_reset_password_email_hr(user_email: str, reset_link: str, site_url: str):
     """Отправка письма для сброса пароля HR-специалистам"""
-    if not organization:
-        organization = Organization.objects.first()
 
-    if not organization:
-        # Если нет организации, используем стандартный email backend Django
-        from django.core.mail import send_mail
-        from django.conf import settings
-        subject = "Сброс пароля"
-        message = f"Для сброса пароля перейдите по ссылке: {reset_link}"
-        send_mail(
-            subject,
-            message,
-            settings.DEFAULT_FROM_EMAIL,
-            [user_email],
-            fail_silently=False,
-        )
-        return
-
-    template_name = EMAIL_RESET_PASSWORD_TEMPLATES["ru"]  # Для HR используем русский по умолчанию
+    template_name = "email_reset_password_hr.html"
     context = {
-        "organization_name": organization.name,
+        "site_url": site_url,
         "reset_link": reset_link,
     }
 
     html_body = render_to_string(template_name, context)
     subject = "Сброс пароля"
-
     email = EmailMultiAlternatives(
         subject=subject,
         body="",
-        from_email=organization.email,
+        from_email=settings.EMAIL_HOST_USER,
         to=[user_email],
-        connection=get_organization_email_connection(organization),
     )
-
     email.attach_alternative(html_body, "text/html")
-    email.send()
+    email.send(fail_silently=False)
