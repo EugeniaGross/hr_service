@@ -83,10 +83,6 @@ class Candidate(models.Model):
     )
     birth_date = models.DateField("Дата рождения", blank=True, null=True)
     birth_place = models.CharField("Место рождения", max_length=255, blank=True)
-    citizenship = models.TextField(
-        "Гражданство (в т.ч. другие государства)",
-        blank=True
-    )
     phone = models.CharField(
         verbose_name="Телефон",
         max_length=20, 
@@ -101,10 +97,6 @@ class Candidate(models.Model):
     residence_address = models.CharField(
         "Место проживания", max_length=255, blank=True
     )
-    passport_series = models.CharField("Серия паспорта", max_length=10, blank=True)
-    passport_number = models.CharField("Номер паспорта", max_length=20, blank=True)
-    passport_issued_by = models.CharField("Кем выдан паспорт", max_length=255, blank=True)
-    passport_issued_at = models.DateField("Дата выдачи паспорта", blank=True, null=True)
     driver_license_number = models.CharField(
         "Водительское удостоверение №",
         max_length=50,
@@ -236,6 +228,8 @@ class Candidate(models.Model):
     
     def anonymize(self):
         with transaction.atomic():
+            first_name = self.first_name
+            last_name = self.last_name
             self.first_name = anonymize_name(self.first_name)
             self.last_name = anonymize_name(self.last_name)
             self.middle_name = anonymize_name(self.middle_name)
@@ -246,14 +240,9 @@ class Candidate(models.Model):
             self.photo = None
             self.birth_date = None
             self.birth_place = ""
-            self.citizenship = ""
             self.phone = ""
             self.registration_address = ""
             self.residence_address = ""
-            self.passport_series = ""
-            self.passport_number = ""
-            self.passport_issued_by = ""
-            self.passport_issued_at = None
             self.driver_license_number = ""
             self.driver_license_issue_date = None
             self.driver_license_categories = ""
@@ -279,12 +268,35 @@ class Candidate(models.Model):
             self.educations.all().delete()
             self.employments.all().delete()
             self.family_members.all().delete()
+            self.citizenships.all().delete()
             self.password = ""
             self.save()
-            send_candidate_anonymization_email_task.delay(self.id)
+            send_candidate_anonymization_email_task.delay(self.id, first_name, last_name)
     
     def __str__(self):
         return f"{self.last_name} {self.first_name}"
+    
+    
+class CandidateCitizenship(models.Model):
+    candidate = models.ForeignKey(
+        Candidate,
+        on_delete=models.CASCADE,
+        related_name="citizenships",
+        verbose_name="Кандидат"
+    )
+    citizenship = models.CharField(
+        "Гражданство (в т.ч. другие государства)",
+        max_length=255,
+        blank=True
+    )
+    passport_series = models.CharField("Серия паспорта", max_length=10, blank=True)
+    passport_number = models.CharField("Номер паспорта", max_length=20, blank=True)
+    passport_issued_by = models.CharField("Кем выдан паспорт", max_length=255, blank=True)
+    passport_issued_at = models.DateField("Дата выдачи паспорта", blank=True, null=True)
+    
+    class Meta:
+        verbose_name = "гражданство"
+        verbose_name_plural = "Гражданство кандидата"
     
     
 class CandidateRecommendation(models.Model):

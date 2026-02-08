@@ -8,7 +8,7 @@ from unfold.forms import AdminPasswordChangeForm, UserChangeForm, UserCreationFo
 from unfold.admin import ModelAdmin, TabularInline
 
 from users.choices import CandidateStatus
-from users.models import Candidate, CandidateEducation, CandidateEmployment, CandidateFamilyMember, CandidateRecommendation
+from users.models import Candidate, CandidateCitizenship, CandidateEducation, CandidateEmployment, CandidateFamilyMember, CandidateRecommendation
 
 User = get_user_model()
 
@@ -78,6 +78,18 @@ class UserAdmin(BaseUserAdmin, ModelAdmin):
                 new_fieldsets.append((name, {"fields": fields}))
             return new_fieldsets
         return fieldsets
+    
+    
+class CandidateCitizenshipInline(TabularInline):
+    model = CandidateCitizenship
+    extra = 0
+    fields = (
+        "citizenship",
+        "passport_series",
+        "passport_number",
+        "passport_issued_by",
+        "passport_issued_at",
+    )
     
     
 class CandidateEducationInline(TabularInline):
@@ -152,6 +164,7 @@ class CandidateEmploymentInline(TabularInline):
 @admin.register(Candidate)
 class CandidateAdmin(ModelAdmin):
     inlines = [
+        CandidateCitizenshipInline,
         CandidateEducationInline,
         CandidateFamilyMemberInline,
         CandidateEmploymentInline,
@@ -177,7 +190,6 @@ class CandidateAdmin(ModelAdmin):
         "last_name",
         "middle_name",
         "phone",
-        "passport_number",
     )
 
     autocomplete_fields = (
@@ -197,7 +209,6 @@ class CandidateAdmin(ModelAdmin):
                 "photo",
                 "birth_date",
                 "birth_place",
-                "citizenship",
             ),
         }),
         ("Контакты и адрес", {
@@ -206,14 +217,6 @@ class CandidateAdmin(ModelAdmin):
                 "phone",
                 "registration_address",
                 "residence_address",
-            ),
-        }),
-        ("Паспортные данные", {
-            "fields": (
-                "passport_series",
-                "passport_number",
-                "passport_issued_by",
-                "passport_issued_at",
             ),
         }),
         ("Водительское удостоверение", {

@@ -99,11 +99,13 @@ def send_candidate_questionnaire(candidate):
     candidate.save(update_fields=["status"])
     
     
-def send_candidate_anonymization_email(candidate):
+def send_candidate_anonymization_email(candidate, first_name, last_name):
     organization = candidate.vacancy.department.organization
     template_name = get_email_anonymization_template(candidate.language)
     context = {
         "organization_name": organization,
+        "first_name": first_name,
+        "last_name": last_name,
     }
     html_body = render_to_string(template_name, context)
     if candidate.language == CommunicationLanguage.FR:

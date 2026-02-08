@@ -43,7 +43,7 @@ def send_reset_password_email_hr_task(self, user_email: str, reset_link: str, si
     retry_kwargs={"max_retries": 3, "countdown": 60},
     retry_backoff=True,
 )
-def send_candidate_anonymization_email_task(self, candidate_id: int):
+def send_candidate_anonymization_email_task(self, candidate_id: int, first_name: str, last_name: str):
     from users.models import Candidate
     try:
         candidate = Candidate.objects.get(id=candidate_id)
@@ -51,7 +51,7 @@ def send_candidate_anonymization_email_task(self, candidate_id: int):
         logger.warning("Candidate %s not found", candidate_id)
         return
 
-    send_candidate_anonymization_email(candidate)
+    send_candidate_anonymization_email(candidate, first_name, last_name)
     
     
 @shared_task(

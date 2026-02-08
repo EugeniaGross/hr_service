@@ -4,7 +4,7 @@ from django.contrib.auth import get_user_model
 from api_v1.fields import Base64FileField
 from api_v1.positions.serializers import PositionSerializer
 from users.choices import CandidateStatus
-from users.models import Candidate, CandidateEducation, CandidateEmployment, CandidateFamilyMember, CandidateRecommendation
+from users.models import Candidate, CandidateCitizenship, CandidateEducation, CandidateEmployment, CandidateFamilyMember, CandidateRecommendation
 
 User = get_user_model()
 
@@ -63,6 +63,14 @@ class CandidateRecommendationSerializer(serializers.ModelSerializer):
     class Meta:
         model = CandidateRecommendation
         exclude = ("candidate",)
+        
+        
+class CandidateCitizenshipSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(required=False)
+
+    class Meta:
+        model = CandidateCitizenship
+        exclude = ("candidate",)
     
     
 class CandidateSerializer(serializers.ModelSerializer):
@@ -76,6 +84,7 @@ class CandidateSerializer(serializers.ModelSerializer):
     employments = CandidateEmploymentSerializer(many=True, required=False)
     family_members = CandidateFamilyMemberSerializer(many=True, required=False)
     recommendations = CandidateRecommendationSerializer(many=True, required=False)
+    citizenships = CandidateCitizenshipSerializer(many=True, required=False)
 
     class Meta:
         model = Candidate
@@ -97,14 +106,9 @@ class CandidateSerializer(serializers.ModelSerializer):
             "middle_name",
             "birth_date",
             "birth_place",
-            "citizenship",
             "phone",
             "registration_address",
             "residence_address",
-            "passport_series",
-            "passport_number",
-            "passport_issued_by",
-            "passport_issued_at",
             "driver_license_number",
             "driver_license_issue_date",
             "driver_license_categories",
@@ -126,6 +130,7 @@ class CandidateSerializer(serializers.ModelSerializer):
             "educations",
             "employments",
             "family_members",
+            "citizenships",
         )
 
     def update(self, instance, validated_data):
@@ -133,6 +138,7 @@ class CandidateSerializer(serializers.ModelSerializer):
         employments_data = validated_data.pop("employments", [])
         family_members_data = validated_data.pop("family_members", [])
         recommendations_data = validated_data.pop("recommendations", [])
+        citizenships_data = validated_data.pop("citizenships", [])
 
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
@@ -164,6 +170,7 @@ class CandidateSerializer(serializers.ModelSerializer):
         update_nested(instance, employments_data, "employments", CandidateEmployment)
         update_nested(instance, family_members_data, "family_members", CandidateFamilyMember)
         update_nested(instance, recommendations_data, "recommendations", CandidateRecommendation)
+        update_nested(instance, citizenships_data, "citizenships", CandidateCitizenship)
 
         return instance
     
@@ -235,6 +242,7 @@ class CandidateDetailSerializer(serializers.ModelSerializer):
     vacancy = serializers.CharField(source="vacancy.title")
     vacancy_id = serializers.IntegerField(source="vacancy.id")
     resume_file = Base64FileField(use_url=True)
+    citizenships = CandidateCitizenshipSerializer(many=True, required=False)
     
     class Meta:
         model = Candidate
@@ -253,14 +261,9 @@ class CandidateDetailSerializer(serializers.ModelSerializer):
             "middle_name",
             "birth_date",
             "birth_place",
-            "citizenship",
             "phone",
             "registration_address",
             "residence_address",
-            "passport_series",
-            "passport_number",
-            "passport_issued_by",
-            "passport_issued_at",
             "driver_license_number",
             "driver_license_issue_date",
             "driver_license_categories",
@@ -287,6 +290,7 @@ class CandidateDetailSerializer(serializers.ModelSerializer):
             "employments",
             "family_members",
             "resume_file",
+            "citizenships"
         )
     
     

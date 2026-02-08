@@ -403,14 +403,13 @@ class CandidateViewSet(
         if new_email and new_email != old_user.email:
             user, _ = User.objects.get_or_create(
                 email=new_email,
+                role="candidate",
                 defaults={"is_active": False}
             )
             candidate.user = user
-            serializer.save(user=user, status=CandidateStatus.NEW, password=None)
+            serializer.save(user=user, password=None)
         else:
-            serializer.save(
-                status = CandidateStatus.NEW
-            )
+            serializer.save()
         
     @action(detail=True, methods=["get"])
     def get_questionnaire_pdf(self, request, pk=None):
@@ -523,8 +522,8 @@ class CandidateViewSet(
     def send_questionnaire(self, request, pk=None):
         candidate = self.get_object()
         
-        if candidate.status == CandidateStatus.SENT:
-            return Response({"detail": "Анкета уже отправлена"}, status=status.HTTP_400_BAD_REQUEST)
+        # if candidate.status == CandidateStatus.SENT:
+        #     return Response({"detail": "Анкета уже отправлена"}, status=status.HTTP_400_BAD_REQUEST)
         send_candidate_questionnaire_task.delay(candidate.id)
         return Response({"detail": "Анкета успешно отправлена"}, status=status.HTTP_200_OK)
     
