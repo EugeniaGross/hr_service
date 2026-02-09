@@ -467,18 +467,19 @@ def insert_candidate_photo(ws, photo_path: str, start_row: int = 2, end_row: int
 def get_questionnaire_ru_xlsx(candidate, template):
     wb = load_workbook(template)
     ws = wb.active
+    citizenship = candidate.citizenships.first()
     passport_value = ", ".join(filter(None, [
-        candidate.passport_series,
-        candidate.passport_number,
-        f"выдан {candidate.passport_issued_by}" if candidate.passport_issued_by else None,
-        candidate.passport_issued_at.strftime("%d.%m.%Y") if candidate.passport_issued_at else None,
+        citizenship.passport_series,
+        citizenship.passport_number,
+        f"выдан {citizenship.passport_issued_at.strftime("%d.%m.%Y")}" if citizenship.passport_issued_at else None,
+        citizenship.passport_issued_by if citizenship.passport_issued_by else None
     ]))
     write_cell(ws, 2, 7, candidate.vacancy.position.name_ru) 
     write_cell(ws, 5, 3, candidate.last_name)               
     write_cell(ws, 6, 3, candidate.first_name)             
     write_cell(ws, 7, 3, candidate.middle_name)           
     write_cell(ws, 9, 3, candidate.birth_date.strftime("%d.%m.%Y") if candidate.birth_date else "")
-    write_cell(ws, 10, 9, candidate.citizenship)        
+    write_cell(ws, 10, 9, citizenship.citizenship)        
     write_cell(ws, 11, 5, candidate.birth_place)        
 
     passport_lines = split_text(passport_value, max_len=55, max_lines=2)

@@ -1,5 +1,3 @@
-from datetime import datetime
-import tempfile
 import os
 
 from docxtpl import InlineImage, DocxTemplate
@@ -480,8 +478,16 @@ class CandidateViewSet(
             tpl = DocxTemplate(os.path.join(path, "templates", "Текст для согласия англ.docx"))
         if candidate.language == CommunicationLanguage.FR:
             tpl = DocxTemplate(os.path.join(path, "templates", "Текст для согласия франц.docx"))
+        sign = None
+        if candidate.signature:
+            sign = InlineImage(
+                tpl,
+                candidate.signature.path,
+                width=Mm(24) 
+            )
         context = {
             "candidate": candidate,
+            "signature": sign,
         }
         pdf_bytes = DocumentService().get_doc_pdf(context, tpl)
         return FileResponse(
