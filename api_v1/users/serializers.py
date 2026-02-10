@@ -77,6 +77,7 @@ class CandidateSerializer(serializers.ModelSerializer):
     photo = Base64FileField(use_url=True, required=False, allow_null=True)
     signature = Base64FileField(use_url=True, required=False, allow_null=True)
     organization = serializers.CharField(source="vacancy.department.organization.name")
+    organization_email = serializers.CharField(source="vacancy.department.organization.email")
     department = serializers.CharField(source="vacancy.department.name")
     position = PositionSerializer(source="vacancy.position", read_only=True)
     vacancy = serializers.CharField(source="vacancy.title")
@@ -90,6 +91,7 @@ class CandidateSerializer(serializers.ModelSerializer):
         model = Candidate
         read_only_fields = (
             "organization",
+            "organization_email",
             "department",
             "position",
             "vacancy",
@@ -98,6 +100,7 @@ class CandidateSerializer(serializers.ModelSerializer):
             "id",
             "photo",
             "organization",
+            "organization_email",
             "department",
             "position",
             "vacancy",
