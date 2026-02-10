@@ -24,6 +24,23 @@ class Position(models.Model):
     class Meta:
         verbose_name = "должность"
         verbose_name_plural = "Должности"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["name_ru"],
+                condition=models.Q(name_ru__isnull=False),
+                name="unique_not_null_name_ru"
+            ),
+            models.UniqueConstraint(
+                fields=["name_fr"],
+                condition=models.Q(name_fr__isnull=False),
+                name="unique_not_null_name_fr"
+            ),
+            models.UniqueConstraint(
+                fields=["name_en"],
+                condition=models.Q(name_en__isnull=False),
+                name="unique_not_null_name_en"
+            ),
+        ]
 
     def __str__(self):
         return self.name_ru
