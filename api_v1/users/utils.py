@@ -468,25 +468,28 @@ def get_questionnaire_ru_xlsx(candidate, template):
     wb = load_workbook(template)
     ws = wb.active
     citizenship = candidate.citizenships.first()
-    passport_value = ", ".join(filter(None, [
-        citizenship.passport_series,
-        citizenship.passport_number,
-        f"выдан {citizenship.passport_issued_at.strftime("%d.%m.%Y")}" if citizenship.passport_issued_at else None,
-        citizenship.passport_issued_by if citizenship.passport_issued_by else None
-    ]))
+    if citizenship:
+        passport_value = ", ".join(filter(None, [
+            citizenship.passport_series,
+            citizenship.passport_number,
+            f"выдан {citizenship.passport_issued_at.strftime("%d.%m.%Y")}" if citizenship.passport_issued_at else None,
+            citizenship.passport_issued_by if citizenship.passport_issued_by else None
+        ]))
     write_cell(ws, 2, 7, candidate.vacancy.position.name_ru) 
     write_cell(ws, 5, 3, candidate.last_name)               
     write_cell(ws, 6, 3, candidate.first_name)             
     write_cell(ws, 7, 3, candidate.middle_name)           
     write_cell(ws, 9, 3, candidate.birth_date.strftime("%d.%m.%Y") if candidate.birth_date else "")
-    write_cell(ws, 10, 9, citizenship.citizenship)        
+    if citizenship:
+        write_cell(ws, 10, 9, citizenship.citizenship)        
     write_cell(ws, 11, 5, candidate.birth_place)        
 
-    passport_lines = split_text(passport_value, max_len=55, max_lines=2)
-    if passport_lines:
-        write_cell(ws, 12, 8, passport_lines[0])
-    if len(passport_lines) > 1:
-        write_cell(ws, 13, 1, passport_lines[1])
+    if citizenship:
+        passport_lines = split_text(passport_value, max_len=55, max_lines=2)
+        if passport_lines:
+            write_cell(ws, 12, 8, passport_lines[0])
+        if len(passport_lines) > 1:
+            write_cell(ws, 13, 1, passport_lines[1])
 
     write_cell(ws, 14, 6, candidate.phone)                  
     write_cell(ws, 15, 6, candidate.email)                    
@@ -727,8 +730,9 @@ def write_basic_info_foreign(ws, candidate):
             candidate.birth_date.strftime("%d.%m.%Y"),
             merge_cols=7
         )
-
-    write_merged_cell(ws, 6, 4, candidate.citizenship, merge_cols=7)
+    citizenship = candidate.citizenships.first()
+    if citizenship:
+        write_merged_cell(ws, 6, 4, citizenship.citizenship, merge_cols=7)
     write_merged_cell(ws, 7, 4, candidate.birth_place, merge_cols=7)
     write_merged_cell(ws, 8, 4, candidate.phone, merge_cols=7)
     write_merged_cell(ws, 9, 4, candidate.email, merge_cols=7)
