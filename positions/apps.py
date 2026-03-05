@@ -1,7 +1,7 @@
-from django.apps import AppConfig
+# from django.apps import AppConfig
 
 
-class PositionsConfig(AppConfig):
-    name = 'positions'
-    verbose_name = "Должности"
-    verbose_name_plural = "Должности"
+# class PositionsConfig(AppConfig):
+#     name = 'positions'
+#     verbose_name = "Должности"
+#     verbose_name_plural = "Должности"

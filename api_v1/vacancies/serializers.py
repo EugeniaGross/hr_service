@@ -17,7 +17,7 @@ class VacancySerializer(serializers.ModelSerializer):
             "code",
             "comment",
             "department",
-            "position",
+            # "position",
             "status",
             "opened_at",
             "closed_at",

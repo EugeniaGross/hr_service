@@ -472,14 +472,14 @@ def get_questionnaire_ru_xlsx(candidate, template):
         passport_value = ", ".join(filter(None, [
             citizenship.passport_series,
             citizenship.passport_number,
-            f"выдан {citizenship.passport_issued_at.strftime("%d.%m.%Y")}" if citizenship.passport_issued_at else None,
+            f"выдан {citizenship.passport_issued_at.strftime("%d/%m/%Y")}" if citizenship.passport_issued_at else None,
             citizenship.passport_issued_by if citizenship.passport_issued_by else None
         ]))
     write_cell(ws, 2, 7, candidate.vacancy.position.name_ru) 
     write_cell(ws, 5, 3, candidate.last_name)               
     write_cell(ws, 6, 3, candidate.first_name)             
     write_cell(ws, 7, 3, candidate.middle_name)           
-    write_cell(ws, 9, 3, candidate.birth_date.strftime("%d.%m.%Y") if candidate.birth_date else "")
+    write_cell(ws, 9, 3, candidate.birth_date.strftime("%d/%m/%Y") if candidate.birth_date else "")
     if citizenship:
         write_cell(ws, 10, 9, citizenship.citizenship)        
     write_cell(ws, 11, 5, candidate.birth_place)        
@@ -514,7 +514,7 @@ def get_questionnaire_ru_xlsx(candidate, template):
         ws.cell(row=row, column=1).value = edu.institution_name_and_location  
         ws.merge_cells(start_row=row, start_column=1, end_row=row, end_column=5)
 
-        ws.cell(row=row, column=6).value = edu.graduation_date
+        ws.cell(row=row, column=6).value = edu.graduation_date.strftime("%m/%Y")
         ws.merge_cells(start_row=row, start_column=6, end_row=row, end_column=7)
 
         ws.cell(row=row, column=8).value = edu.get_education_form_display()
@@ -543,8 +543,8 @@ def get_questionnaire_ru_xlsx(candidate, template):
 
     for idx, emp in enumerate(employments):
         row = start_employment_row + idx
-        ws.cell(row=row, column=1).value = emp.start_date.strftime("%d.%m.%Y") if emp.start_date else ""
-        ws.cell(row=row, column=2).value = emp.end_date.strftime("%d.%m.%Y") if emp.end_date else ""
+        ws.cell(row=row, column=1).value = emp.start_date.strftime("%m/%Y") if emp.start_date else ""
+        ws.cell(row=row, column=2).value = emp.end_date.strftime("%m/%Y") if emp.end_date else ""
         ws.merge_cells(start_row=row, start_column=2, end_row=row, end_column=4)
         ws.cell(row=row, column=5).value = emp.position_and_organization
         ws.merge_cells(start_row=row, start_column=5, end_row=row, end_column=7)
@@ -644,7 +644,7 @@ def get_questionnaire_ru_xlsx(candidate, template):
             end_column=9
         )
         ws.cell(row=driver_row, column=13).value = (
-            candidate.driver_license_issue_date.strftime("%d.%m.%Y")
+            candidate.driver_license_issue_date.strftime("%d/%m/%Y")
             if candidate.driver_license_issue_date else ""
         )
         ws.merge_cells(
@@ -727,7 +727,7 @@ def write_basic_info_foreign(ws, candidate):
     if candidate.birth_date:
         write_merged_cell(
             ws, 5, 4,
-            candidate.birth_date.strftime("%d.%m.%Y"),
+            candidate.birth_date.strftime("%d/%m/%Y"),
             merge_cols=7
         )
     citizenship = candidate.citizenships.first()
@@ -808,7 +808,7 @@ def write_education(ws, candidate, search_string):
     for i, edu in enumerate(educations):
         row = start_row + i
         write_cell(ws, row, 1, edu.institution_name_and_location)  # A-E
-        write_cell(ws, row, 6, str(edu.graduation_date))           # F-G
+        write_cell(ws, row, 6, edu.graduation_date.strftime("%m/%Y"))           # F-G
         write_cell(ws, row, 8, edu.specialty)                      # H-L
         write_cell(ws, row, 13, edu.diploma_information)           # M-N
         
@@ -870,9 +870,9 @@ def write_employment(ws, candidate, search_string):
 
         period = ""
         if emp.start_date:
-            period += f"{emp.start_date.strftime("%m.%Y")} - "
+            period += f"{emp.start_date.strftime("%m/%Y")} - "
         if emp.end_date:
-            period += emp.end_date.strftime('%m.%Y')
+            period += emp.end_date.strftime('%m/%Y')
 
         write_cell(ws, row, 1, period)                              # A-B
         write_cell(ws, row, 5, emp.position_and_organization)       # C-F
@@ -961,7 +961,7 @@ def write_family(ws, candidate, search_string):
         row = start_row + i
 
         write_cell(ws, row, 1, member.relation)
-        write_cell(ws, row, 4, member.birth_date.strftime("%d.%m.%Y") if member.birth_date else "")
+        write_cell(ws, row, 4, member.birth_date.strftime("%d/%m/%Y") if member.birth_date else "")
         write_cell(ws, row, 7, member.occupation)
         write_cell(ws, row, 11, member.residence)
          
@@ -973,27 +973,27 @@ def write_questions_en(ws, candidate):
         candidate.health_restrictions,
         max_lines=2
     )
-    write_answer_block(ws, "Where did you find out about us?", candidate.vacancy_source, 1)
+    write_answer_block(ws, "How did you hear about us?", candidate.vacancy_source, 1)
     write_answer_block(
         ws,
-        "Do you currently have any friends, relatives working for us?",
+        "Do you have any family members or close associates employed by the company? Ifyes, pleasespecify",
         candidate.acquaintances_in_company,
         2
     )
-    write_answer_block(ws, "Do you have any additional job requirements?", candidate.job_requirements, 2)
+    write_answer_block(ws, "Do you have any specific employment requirements (e.g., work schedule)?", candidate.job_requirements, 2)
     write_answer_block(
         ws,
-        "Please indicate which factors can be disturbance in your work:",
+        "Are there any factors that may affect your work performance? (Optional)",
         candidate.work_obstacles,
         2
     )
     write_answer_block(
         ws,
-        "Other personal details you are willing to give:",
+        "Additional information you would like to provide (optional):",
         candidate.additional_info,
         3
     )
-    write_answer_block(ws, "Your salary expectations:", candidate.salary_expectations, 1)
+    write_answer_block(ws, "Salary expectations (gross monthly salary):", candidate.salary_expectations, 1)
 
 
 def get_questionnaire_en_xlsx(candidate, template):
@@ -1002,7 +1002,7 @@ def get_questionnaire_en_xlsx(candidate, template):
     write_basic_info_foreign(ws, candidate)
     write_education(ws, candidate, "education")
     write_employment(ws, candidate, "employment history")
-    write_references(ws, candidate, "references (may be provided by your manager or business partners)")
+    write_references(ws, candidate, "references")
     write_family(ws, candidate, "family")
     write_questions_en(ws, candidate)
     write_created_at(ws, candidate)
@@ -1018,14 +1018,14 @@ def get_questionnaire_en_xlsx(candidate, template):
 def write_questions_fr(ws, candidate):
     write_answer_block(
         ws,
-        "Avez-vous des maladies professionnelles ou un handicap?",
+        "Souffrez-vous d’une atteinte à la santé ou d’un handicap susceptible d’influencer l’exercice de l’activité professionnelle?",
         candidate.health_restrictions,
         max_lines=2
     )
-    write_answer_block(ws, "Comment vous avez appris de notre poste?", candidate.vacancy_source, 1)
+    write_answer_block(ws, "Comment avez-vous pris connaissance de notre offre d’emploi?", candidate.vacancy_source, 1)
     write_answer_block(
         ws,
-        "Avez-vous des amis ou membres de famille qui travaillent dans notre compagnie?",
+        "Avez-vous des amis ou des members de votre famille qui travaillent dans notre entreprise?",
         candidate.acquaintances_in_company,
         2
     )
@@ -1038,11 +1038,11 @@ def write_questions_fr(ws, candidate):
     )
     write_answer_block(
         ws,
-        "Autre information de vous-même que vous voulez partager:",
+        "Y a-t-il d’autres informations vous concernant que vous souhaitez partager?",
         candidate.additional_info,
         3
     )
-    write_answer_block(ws, "Niveau de salaire expecté:", candidate.salary_expectations, 1)
+    write_answer_block(ws, "Prétentions salariales:", candidate.salary_expectations, 1)
 
 
 def get_questionnaire_fr_xlsx(candidate, template):
@@ -1051,7 +1051,7 @@ def get_questionnaire_fr_xlsx(candidate, template):
     write_basic_info_foreign(ws, candidate)
     write_education(ws, candidate, "formation")
     write_employment(ws, candidate, "expérience professionelle")
-    write_references(ws, candidate, "références (chefs ou business partenaires)")
+    write_references(ws, candidate, "références")
     write_family(ws, candidate, "famille")
     write_questions_fr(ws, candidate)
     write_created_at(ws, candidate)

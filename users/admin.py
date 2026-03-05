@@ -3,12 +3,14 @@ from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import Group
 from django.contrib.auth import get_user_model
 from django.db.models import Case, When, Value, IntegerField
+from django.db import models
+from unfold.widgets import UnfoldAdminSingleDateWidget
 
 from unfold.forms import AdminPasswordChangeForm, UserChangeForm, UserCreationForm
-from unfold.admin import ModelAdmin, TabularInline
+from unfold.admin import ModelAdmin, TabularInline, StackedInline
 
 from users.choices import CandidateStatus
-from users.models import Candidate, CandidateCitizenship, CandidateEducation, CandidateEmployment, CandidateFamilyMember, CandidateRecommendation
+from users.models import Candidate, CandidateCitizenship, CandidateEducation, CandidateEmployment, CandidateFamilyMember, CandidateOtherDocument, CandidateRecommendation
 
 User = get_user_model()
 
@@ -80,7 +82,7 @@ class UserAdmin(BaseUserAdmin, ModelAdmin):
         return fieldsets
     
     
-class CandidateCitizenshipInline(TabularInline):
+class CandidateCitizenshipInline(StackedInline):
     model = CandidateCitizenship
     extra = 0
     fields = (
@@ -89,10 +91,22 @@ class CandidateCitizenshipInline(TabularInline):
         "passport_number",
         "passport_issued_by",
         "passport_issued_at",
+        "passport_document",
+        "residence_permit_document"
     )
+    tab = True
     
     
-class CandidateEducationInline(TabularInline):
+class MonthYearWidget(UnfoldAdminSingleDateWidget):
+    input_type = 'month'
+
+    def format_value(self, value):
+        if value:
+            return value.strftime('%Y-%m')
+        return ''
+    
+    
+class CandidateEducationInline(StackedInline):
     model = CandidateEducation
     extra = 0
     fields = (
@@ -101,7 +115,16 @@ class CandidateEducationInline(TabularInline):
         "education_form",
         "specialty",
         "diploma_information",
+        "diploma_document"
     )
+    tab = True
+    
+    formfield_overrides = {
+        models.DateField: {
+            "widget": MonthYearWidget(),
+            "input_formats": ["%Y-%m"],
+        }
+    }
     
     class Media:
         css = {
@@ -118,7 +141,19 @@ class CandidateRecommendationInline(TabularInline):
         "position",
         "contact",
         "text",
+        "recommendation_document"
     )
+    tab = True
+    
+    
+class CandidateOtherDocumentInline(TabularInline):
+    model = CandidateOtherDocument
+    extra = 0
+    fields = (
+        "name",
+        "file",
+    )
+    tab = True
 
 
 class CandidateFamilyMemberInline(TabularInline):
@@ -131,6 +166,7 @@ class CandidateFamilyMemberInline(TabularInline):
         "occupation",
         "residence",
     )
+    tab = True
     
     
 class CandidateEmploymentInline(TabularInline):
@@ -144,6 +180,13 @@ class CandidateEmploymentInline(TabularInline):
         "end_date",
         "dismissal_reason",
     )
+    
+    formfield_overrides = {
+        models.DateField: {
+            "widget": MonthYearWidget(),
+            "input_formats": ["%Y-%m"],
+        }
+    }
     
     class Media:
         css = {
@@ -169,6 +212,7 @@ class CandidateAdmin(ModelAdmin):
         CandidateFamilyMemberInline,
         CandidateEmploymentInline,
         CandidateRecommendationInline,
+        CandidateOtherDocumentInline
     ]
 
     list_display = (
@@ -198,7 +242,7 @@ class CandidateAdmin(ModelAdmin):
         "user",
     )
 
-    readonly_fields = ("created_at", "updated_at")
+    readonly_fields = ("formatted_created_at", "formatted_updated_at", "created_by")
 
     fieldsets = (
         ("Персональные данные", {
@@ -258,14 +302,17 @@ class CandidateAdmin(ModelAdmin):
             "fields": (
                 "user",
                 "created_by",
-                "created_at",
-                "updated_at",
+                "formatted_created_at",
+                "formatted_updated_at",
                 "status",
                 "link_expiration",
                 "anonymization_date"
             ),
         }),
     )
+    
+    class Media:
+        js = ('admin/js/admin.js',)
 
     def full_name(self, obj):
         return f"{obj.last_name} {obj.first_name} {obj.middle_name or ''}".strip()
@@ -290,3 +337,18 @@ class CandidateAdmin(ModelAdmin):
                 return
 
         super().save_model(request, obj, form, change)
+        
+    def get_form(self, request, obj, **kwargs):
+        form = super().get_form(request, obj, **kwargs)
+        form.base_fields["link_expiration"].widget.widgets[1].format = "%H:%M"
+        return form
+    
+    def formatted_created_at(self, obj):
+        return obj.created_at.strftime("%d/%m/%Y %H:%M") if obj.created_at else ""
+    formatted_created_at.admin_order_field = "created_at"
+    formatted_created_at.short_description = "Дата создания"
+
+    def formatted_updated_at(self, obj):
+        return obj.updated_at.strftime("%d/%m/%Y %H:%M") if obj.updated_at else ""
+    formatted_updated_at.admin_order_field = "updated_at"
+    formatted_updated_at.short_description = "Дата обновления"

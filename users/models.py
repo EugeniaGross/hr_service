@@ -277,6 +277,28 @@ class Candidate(models.Model):
         return f"{self.last_name} {self.first_name}"
     
     
+class CandidateOtherDocument(models.Model):
+    candidate = models.ForeignKey(
+        Candidate,
+        on_delete=models.CASCADE,
+        related_name="other_documents",
+        verbose_name="Кандидат"
+    )
+    file = models.FileField(
+        "Файл",
+        upload_to="candidates/documents/"
+    )
+    name = models.CharField(
+        "Название документа",
+        max_length=255,
+        blank=True
+    )
+
+    class Meta:
+        verbose_name = "другой документ кандидата"
+        verbose_name_plural = "Другие документы кандидата"
+    
+    
 class CandidateCitizenship(models.Model):
     candidate = models.ForeignKey(
         Candidate,
@@ -293,10 +315,25 @@ class CandidateCitizenship(models.Model):
     passport_number = models.CharField("Номер паспорта", max_length=20, blank=True)
     passport_issued_by = models.CharField("Кем выдан паспорт", max_length=255, blank=True)
     passport_issued_at = models.DateField("Дата выдачи паспорта", blank=True, null=True)
+    passport_document = models.FileField(
+        "Файл паспорта",
+        upload_to="candidates/passports/",
+        blank=True,
+        null=True
+    )
+    residence_permit_document = models.FileField(
+        "Файл вида на жительство",
+        upload_to="candidates/residence_permits/",
+        blank=True,
+        null=True
+    )
     
     class Meta:
         verbose_name = "гражданство"
         verbose_name_plural = "Гражданство кандидата"
+        
+    def __str__(self):
+        return f"{self.citizenship}"
     
     
 class CandidateRecommendation(models.Model):
@@ -330,6 +367,12 @@ class CandidateRecommendation(models.Model):
         "Текст рекомендации",
         blank=True
     )
+    recommendation_document = models.FileField(
+        "Файл рекомендации",
+        upload_to="candidates/recommendations/",
+        blank=True,
+        null=True
+    )
 
     class Meta:
         verbose_name = "рекомендация"
@@ -351,9 +394,10 @@ class CandidateEducation(models.Model):
         "Учебное заведение и местонахождение", 
         max_length=255
     )
-    graduation_date = models.PositiveIntegerField(
-        "Год окончания", 
-        validators=[validate_graduation_year]
+    graduation_date = models.DateField(
+        "Дата окончания", 
+        blank=True,
+        null=True
     )
     education_form = models.CharField(
         "Форма обучения",
@@ -368,6 +412,12 @@ class CandidateEducation(models.Model):
         "Информация о дипломе", 
         max_length=255, 
         blank=True
+    )
+    diploma_document = models.FileField(
+        "Файл диплома",
+        upload_to="candidates/educations/",
+        blank=True,
+        null=True
     )
 
     class Meta:

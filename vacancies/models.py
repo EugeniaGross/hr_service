@@ -2,7 +2,6 @@ from django.db import models
 from django.utils import timezone
 
 from departments.models import Department
-from positions.models import Position
 from vacancies.choices import VacancyStatus
 
 
@@ -13,12 +12,12 @@ class Vacancy(models.Model):
         related_name="vacancies",
         verbose_name="Департамент"
     )
-    position = models.ForeignKey(
-        Position,
-        on_delete=models.CASCADE,
-        related_name="vacancies",
-        verbose_name="Должность"
-    )
+    # position = models.ForeignKey(
+    #     Position,
+    #     on_delete=models.CASCADE,
+    #     related_name="vacancies",
+    #     verbose_name="Должность"
+    # )
     code = models.CharField("Код", max_length=255)
     title = models.CharField(
         max_length=255,

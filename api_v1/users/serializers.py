@@ -2,9 +2,8 @@ from rest_framework import serializers
 from django.contrib.auth import get_user_model
 
 from api_v1.fields import Base64FileField
-from api_v1.positions.serializers import PositionSerializer
 from users.choices import CandidateStatus
-from users.models import Candidate, CandidateCitizenship, CandidateEducation, CandidateEmployment, CandidateFamilyMember, CandidateRecommendation
+from users.models import Candidate, CandidateCitizenship, CandidateEducation, CandidateEmployment, CandidateFamilyMember, CandidateOtherDocument, CandidateRecommendation
 
 User = get_user_model()
 
@@ -35,6 +34,7 @@ class ResetPasswordSerializer(serializers.Serializer):
     
 class CandidateEducationSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(required=False)
+    diploma_document = Base64FileField(use_url=True, required=False, allow_null=True)
 
     class Meta:
         model = CandidateEducation
@@ -59,6 +59,7 @@ class CandidateFamilyMemberSerializer(serializers.ModelSerializer):
         
 class CandidateRecommendationSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(required=False)
+    recommendation_document = Base64FileField(use_url=True, required=False, allow_null=True)
 
     class Meta:
         model = CandidateRecommendation
@@ -67,9 +68,20 @@ class CandidateRecommendationSerializer(serializers.ModelSerializer):
         
 class CandidateCitizenshipSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(required=False)
+    passport_document = Base64FileField(use_url=True, required=False, allow_null=True)
+    residence_permit_document = Base64FileField(use_url=True, required=False, allow_null=True)
 
     class Meta:
         model = CandidateCitizenship
+        exclude = ("candidate",)
+        
+        
+class CandidateOtherDocumentSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(required=False)
+    file = Base64FileField(use_url=True, required=False, allow_null=True)
+
+    class Meta:
+        model = CandidateOtherDocument
         exclude = ("candidate",)
     
     
@@ -79,13 +91,14 @@ class CandidateSerializer(serializers.ModelSerializer):
     organization = serializers.CharField(source="vacancy.department.organization.name")
     organization_email = serializers.CharField(source="vacancy.department.organization.email")
     department = serializers.CharField(source="vacancy.department.name")
-    position = PositionSerializer(source="vacancy.position", read_only=True)
+    # position = PositionSerializer(source="vacancy.position", read_only=True)
     vacancy = serializers.CharField(source="vacancy.title")
     educations = CandidateEducationSerializer(many=True, required=False)
     employments = CandidateEmploymentSerializer(many=True, required=False)
     family_members = CandidateFamilyMemberSerializer(many=True, required=False)
     recommendations = CandidateRecommendationSerializer(many=True, required=False)
     citizenships = CandidateCitizenshipSerializer(many=True, required=False)
+    other_documents = CandidateOtherDocumentSerializer(many=True, required=False)
 
     class Meta:
         model = Candidate
@@ -93,7 +106,7 @@ class CandidateSerializer(serializers.ModelSerializer):
             "organization",
             "organization_email",
             "department",
-            "position",
+            # "position",
             "vacancy",
         )
         fields = (
@@ -102,7 +115,7 @@ class CandidateSerializer(serializers.ModelSerializer):
             "organization",
             "organization_email",
             "department",
-            "position",
+            # "position",
             "vacancy",
             "first_name",
             "last_name",
@@ -134,6 +147,7 @@ class CandidateSerializer(serializers.ModelSerializer):
             "employments",
             "family_members",
             "citizenships",
+            "other_documents"
         )
 
     def update(self, instance, validated_data):
@@ -142,6 +156,7 @@ class CandidateSerializer(serializers.ModelSerializer):
         family_members_data = validated_data.pop("family_members", [])
         recommendations_data = validated_data.pop("recommendations", [])
         citizenships_data = validated_data.pop("citizenships", [])
+        other_documents_data = validated_data.pop("other_documents", [])
 
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
@@ -174,6 +189,7 @@ class CandidateSerializer(serializers.ModelSerializer):
         update_nested(instance, family_members_data, "family_members", CandidateFamilyMember)
         update_nested(instance, recommendations_data, "recommendations", CandidateRecommendation)
         update_nested(instance, citizenships_data, "citizenships", CandidateCitizenship)
+        update_nested(instance, other_documents_data, "other_documents", CandidateOtherDocument)
 
         return instance
     
@@ -204,7 +220,7 @@ class CandidateListSerializer(serializers.ModelSerializer):
     organization = serializers.CharField(source="vacancy.department.organization.name")
     organization_id = serializers.IntegerField(source="vacancy.department.organization.id")
     department = serializers.CharField(source="vacancy.department.name")
-    position = PositionSerializer(source="vacancy.position", read_only=True)
+    # position = PositionSerializer(source="vacancy.position", read_only=True)
     vacancy = serializers.CharField(source="vacancy.title")
     vacancy_id = serializers.IntegerField(source="vacancy.id")
     resume_file = Base64FileField(use_url=True)
@@ -222,7 +238,7 @@ class CandidateListSerializer(serializers.ModelSerializer):
             "organization",
             "organization_id",
             "department",
-            "position",
+            # "position",
             "vacancy",
             "vacancy_id",
             "anonymization_date",
@@ -241,11 +257,12 @@ class CandidateDetailSerializer(serializers.ModelSerializer):
     organization = serializers.CharField(source="vacancy.department.organization.name")
     organization_id = serializers.IntegerField(source="vacancy.department.organization.id")
     department = serializers.CharField(source="vacancy.department.name")
-    position = PositionSerializer(source="vacancy.position", read_only=True)
+    # position = PositionSerializer(source="vacancy.position", read_only=True)
     vacancy = serializers.CharField(source="vacancy.title")
     vacancy_id = serializers.IntegerField(source="vacancy.id")
     resume_file = Base64FileField(use_url=True)
     citizenships = CandidateCitizenshipSerializer(many=True, required=False)
+    other_documents = CandidateOtherDocumentSerializer(many=True, required=False)
     
     class Meta:
         model = Candidate
@@ -254,7 +271,7 @@ class CandidateDetailSerializer(serializers.ModelSerializer):
             "organization",
             "organization_id",
             "department",
-            "position",
+            # "position",
             "vacancy",
             "vacancy_id",
             "status",
@@ -293,7 +310,8 @@ class CandidateDetailSerializer(serializers.ModelSerializer):
             "employments",
             "family_members",
             "resume_file",
-            "citizenships"
+            "citizenships",
+            "other_documents"
         )
     
     
