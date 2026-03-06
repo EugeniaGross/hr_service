@@ -1,11 +1,12 @@
 from django.db import models
 from django.utils import timezone
 
+from core.models import VersionedModel
 from departments.models import Department
 from vacancies.choices import VacancyStatus
 
 
-class Vacancy(models.Model):
+class Vacancy(VersionedModel):
     department = models.ForeignKey(
         Department,
         on_delete=models.CASCADE,
@@ -45,14 +46,6 @@ class Vacancy(models.Model):
         null=True,
         related_name="vacancies",
         verbose_name="Создатель"
-    )
-    created_at = models.DateTimeField(
-        verbose_name="Дата создания",
-        auto_now_add=True
-    )
-    updated_at = models.DateTimeField(
-        "Дата последнего обновления",
-        auto_now=True
     )
     
     class Meta:

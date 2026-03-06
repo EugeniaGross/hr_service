@@ -1,12 +1,12 @@
 from django.contrib import admin
 from django.utils.html import format_html
-from unfold.admin import ModelAdmin
 
+from core.admin import VersionedAdmin
 from departments.models import Department
 
 
 @admin.register(Department)
-class DepartmentAdmin(ModelAdmin):
+class DepartmentAdmin(VersionedAdmin):
     list_display = ("name", "organization", "parent", "colored_level")
     list_filter = ("organization",)
     search_fields = ("name",)
@@ -21,7 +21,7 @@ class DepartmentAdmin(ModelAdmin):
             )
         }),
         ("Системная информация", {
-            "fields": ("level",),
+            "fields": ("level", "version"),
         }),
     )
 

@@ -1,8 +1,9 @@
 from rest_framework import serializers
+from api_v1.serializers import VersionedModelSerializer
 from organizations.models import Organization
 
 
-class OrganizationSerializer(serializers.ModelSerializer):
+class OrganizationSerializer(VersionedModelSerializer):
     email_password = serializers.CharField(
         write_only=True,
         required=False,
@@ -17,7 +18,8 @@ class OrganizationSerializer(serializers.ModelSerializer):
             "email",
             "email_password",
             "email_host",
-            "email_port"
+            "email_port",
+            "version"
         )
 
     def create(self, validated_data):

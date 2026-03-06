@@ -1,13 +1,12 @@
 from django.contrib import admin
-from unfold.admin import ModelAdmin
 
+from core.admin import VersionedAdmin
 from settings.models import Settings
 
 
 @admin.register(Settings)
-class SettingsAdmin(ModelAdmin):
+class SettingsAdmin(VersionedAdmin):
     list_display = (
-        "id",
         "link_expiration_hours",
         "anonymization_period_days",
         "updated_at",
@@ -23,7 +22,7 @@ class SettingsAdmin(ModelAdmin):
             "fields": ("anonymization_period_days",),
         }),
         ("Служебная информация", {
-            "fields": ("updated_at",),
+            "fields": ("updated_at", "version"),
         }),
     )
 

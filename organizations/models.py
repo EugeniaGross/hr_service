@@ -2,7 +2,10 @@ from django.conf import settings
 from django.db import models
 from cryptography.fernet import Fernet
 
-class Organization(models.Model):
+from core.models import VersionedModel
+
+
+class Organization(VersionedModel):
     name = models.CharField(
         max_length=255,
         verbose_name="Наименование организации"

@@ -1,9 +1,10 @@
 from rest_framework import serializers
 
+from api_v1.serializers import VersionedModelSerializer
 from vacancies.models import Vacancy
 
 
-class VacancySerializer(serializers.ModelSerializer):
+class VacancySerializer(VersionedModelSerializer):
     candidates_count = serializers.IntegerField(
         source="candidates.count",
         read_only=True
@@ -23,6 +24,7 @@ class VacancySerializer(serializers.ModelSerializer):
             "closed_at",
             "candidates_count",
             "created_at",
+            "version"
         )
         read_only_fields = (
             "opened_at",

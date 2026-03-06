@@ -2,6 +2,7 @@ from rest_framework import serializers
 from django.contrib.auth import get_user_model
 
 from api_v1.fields import Base64FileField
+from api_v1.serializers import VersionedModelSerializer
 from users.choices import CandidateStatus
 from users.models import Candidate, CandidateCitizenship, CandidateEducation, CandidateEmployment, CandidateFamilyMember, CandidateOtherDocument, CandidateRecommendation
 
@@ -85,7 +86,7 @@ class CandidateOtherDocumentSerializer(serializers.ModelSerializer):
         exclude = ("candidate",)
     
     
-class CandidateSerializer(serializers.ModelSerializer):
+class CandidateSerializer(VersionedModelSerializer):
     photo = Base64FileField(use_url=True, required=False, allow_null=True)
     signature = Base64FileField(use_url=True, required=False, allow_null=True)
     organization = serializers.CharField(source="vacancy.department.organization.name")
@@ -147,7 +148,8 @@ class CandidateSerializer(serializers.ModelSerializer):
             "employments",
             "family_members",
             "citizenships",
-            "other_documents"
+            "other_documents",
+            "version"
         )
         
     def validate(self, attrs):
@@ -318,7 +320,8 @@ class CandidateDetailSerializer(serializers.ModelSerializer):
             "family_members",
             "resume_file",
             "citizenships",
-            "other_documents"
+            "other_documents",
+            "version"
         )
     
     
@@ -337,6 +340,7 @@ class CandidatePartialUpdateSerializer(serializers.ModelSerializer):
             "vacancy",
             "status",
             "resume_file",
+            "version"
         )
     
     def validate_status(self, value):

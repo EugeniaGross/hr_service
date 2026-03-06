@@ -225,6 +225,11 @@ class CandidateProfileDetailAPIView(APIView):
             return Response({"password_set": False}, status=200)
         serializer = CandidateSerializer(profile, data=request.data, partial=True, context={"request": self.request})
         serializer.is_valid(raise_exception=True)
+        if profile.version != request.data.get("version"):
+            return Response(
+                {"detail": "Объект был изменён другим пользователем. Обновите сраницу."}, 
+                status=409
+            )
         serializer.save()
         if profile.status != CandidateStatus.RECEIVED:
             profile.status = CandidateStatus.RECEIVED

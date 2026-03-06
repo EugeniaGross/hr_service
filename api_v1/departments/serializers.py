@@ -1,5 +1,6 @@
 from rest_framework import serializers
 
+from api_v1.serializers import VersionedModelSerializer
 from departments.models import Department
 
 
@@ -23,13 +24,14 @@ class DepartmentTreeSerializer(serializers.ModelSerializer):
         return DepartmentTreeSerializer(children, many=True).data
     
     
-class DepartmentSerializer(serializers.ModelSerializer):
+class DepartmentSerializer(VersionedModelSerializer):
     class Meta:
         model = Department
         fields = (
             "id",
             "name",
             "parent",
+            "version"
         )
         
         read_only_fields = ("level", )

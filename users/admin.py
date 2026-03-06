@@ -1,3 +1,4 @@
+from datetime import date, datetime
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import Group
@@ -7,8 +8,9 @@ from django.db import models
 from unfold.widgets import UnfoldAdminSingleDateWidget
 
 from unfold.forms import AdminPasswordChangeForm, UserChangeForm, UserCreationForm
-from unfold.admin import ModelAdmin, TabularInline, StackedInline
+from unfold.admin import TabularInline, StackedInline
 
+from core.admin import VersionedAdmin
 from users.choices import CandidateStatus
 from users.models import Candidate, CandidateCitizenship, CandidateEducation, CandidateEmployment, CandidateFamilyMember, CandidateOtherDocument, CandidateRecommendation
 
@@ -18,7 +20,7 @@ admin.site.unregister(Group)
 
 
 @admin.register(User)
-class UserAdmin(BaseUserAdmin, ModelAdmin):
+class UserAdmin(BaseUserAdmin, VersionedAdmin):
     model = User
     form = UserChangeForm
     add_form = UserCreationForm
@@ -37,7 +39,7 @@ class UserAdmin(BaseUserAdmin, ModelAdmin):
     search_fields = ("email",)
 
     fieldsets = (
-        (None, {"fields": ("email", "password")}),
+        (None, {"fields": ("email", "password", "version")}),
         ("Роль", {"fields": ("role",)}),
         ("Права доступа", {
             "fields": (
@@ -101,8 +103,14 @@ class MonthYearWidget(UnfoldAdminSingleDateWidget):
     input_type = 'month'
 
     def format_value(self, value):
-        if value:
+        print(value)
+        if value and isinstance(value, date):
             return value.strftime('%Y-%m')
+        if value and isinstance(value, str):
+            try:
+                return datetime.strptime(value, '%Y-%m-%d').strftime('%Y-%m')
+            except ValueError:
+                return value
         return ''
     
     
@@ -206,7 +214,7 @@ class CandidateEmploymentInline(TabularInline):
 
 
 @admin.register(Candidate)
-class CandidateAdmin(ModelAdmin):
+class CandidateAdmin(VersionedAdmin):
     inlines = [
         CandidateCitizenshipInline,
         CandidateEducationInline,
@@ -307,7 +315,8 @@ class CandidateAdmin(ModelAdmin):
                 "formatted_updated_at",
                 "status",
                 "link_expiration",
-                "anonymization_date"
+                "anonymization_date",
+                "version"
             ),
         }),
     )

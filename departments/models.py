@@ -1,22 +1,21 @@
 from django.db import models
 from django.forms import ValidationError
 
+from core.models import VersionedModel
 from organizations.models import Organization
 
 
-class Department(models.Model):
+class Department(VersionedModel):
     organization = models.ForeignKey(
         Organization,
         on_delete=models.CASCADE,
         related_name="departments",
         verbose_name="Организация"
     )
-
     name = models.CharField(
         max_length=255,
         verbose_name="Наименование подразделения"
     )
-
     parent = models.ForeignKey(
         "self",
         null=True,
@@ -25,7 +24,6 @@ class Department(models.Model):
         on_delete=models.CASCADE,
         verbose_name="Подразделение уровнем выше"
     )
-
     level = models.PositiveSmallIntegerField(
         default=1,
         verbose_name="Уровень вложенности"
@@ -40,6 +38,7 @@ class Department(models.Model):
         return f"{self.organization.name} / {self.name}"
 
     def clean(self):
+        super().clean()
         if self.parent:
             if self.parent.organization != self.organization:
                 raise ValidationError("Подразделение должно быть в той же организации")

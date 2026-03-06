@@ -1,8 +1,10 @@
 from django.db import models
 from django.core.validators import MinValueValidator
 
+from core.models import VersionedModel
 
-class Settings(models.Model):
+
+class Settings(VersionedModel):
     """Глобальные настройки системы."""
 
     link_expiration_hours = models.PositiveIntegerField(
@@ -17,11 +19,6 @@ class Settings(models.Model):
         help_text="Через сколько дней персональные данные должны быть обезличены",
         blank=True,
         null=True
-    )
-
-    updated_at = models.DateTimeField(
-        verbose_name="Обновлено",
-        auto_now=True
     )
 
     class Meta:

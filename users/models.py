@@ -6,15 +6,15 @@ from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
 from django.db import transaction
 
+from core.models import VersionedModel
 from users.choices import CandidateStatus, CommunicationLanguage, EducationForm
 from users.managers import UserManager
 from users.tasks import send_candidate_anonymization_email_task
 from users.utils import anonymize_name
-from users.validators import validate_graduation_year
 from vacancies.models import Vacancy
 
 
-class User(AbstractUser):
+class User(VersionedModel, AbstractUser):
     username_validator = None
     username = None
     groups=None
@@ -44,7 +44,7 @@ class User(AbstractUser):
         return self.email
         
 
-class Candidate(models.Model):
+class Candidate(VersionedModel):
     password = models.CharField(max_length=128, blank=True)
     status = models.CharField(
         verbose_name="Статус кандидата",
@@ -198,14 +198,6 @@ class Candidate(models.Model):
         on_delete=models.CASCADE,
         related_name="candidates",
         verbose_name="Вакансия"
-    )
-    created_at = models.DateTimeField(
-        "Дата создания",
-        auto_now_add=True
-    )
-    updated_at = models.DateTimeField(
-        "Дата последнего обновления",
-        auto_now=True
     )
     anonymization_date = models.DateField(
         "Дата обезличивания",

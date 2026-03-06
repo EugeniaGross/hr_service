@@ -1,11 +1,11 @@
 from django.contrib import admin
-from unfold.admin import ModelAdmin
 
+from core.admin import VersionedAdmin
 from vacancies.models import Vacancy
 
 
 @admin.register(Vacancy)
-class VacancyAdmin(ModelAdmin):
+class VacancyAdmin(VersionedAdmin):
     list_display = (
         "title",
         "department",
@@ -28,6 +28,7 @@ class VacancyAdmin(ModelAdmin):
         "opened_at",
         "closed_at",
         "created_at",
+        "updated_at",
     )
 
     fieldsets = (
@@ -35,7 +36,6 @@ class VacancyAdmin(ModelAdmin):
             "fields": (
                 "title",
                 "department",
-                "position",
                 "status",
             )
         }),
@@ -49,7 +49,8 @@ class VacancyAdmin(ModelAdmin):
         ("Служебная информация", {
             "fields": (
                 "created_by",
-                "updated_at"
+                "updated_at",
+                "version"
             )
         }),
     )

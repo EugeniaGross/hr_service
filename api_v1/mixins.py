@@ -13,6 +13,11 @@ class UpdateModelMixin:
         instance = self.get_object()
         serializer = self.get_serializer(instance, data=request.data, partial=partial)
         serializer.is_valid(raise_exception=True)
+        if instance.version != serializer.validated_data.get('version'):
+            return Response(
+                data={"detail": "Объект был изменён другим пользователем. Обновите страницу."},
+                status=409
+            )
         self.perform_update(serializer)
 
         queryset = self.filter_queryset(self.get_queryset())

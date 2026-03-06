@@ -1,8 +1,9 @@
 from django.contrib import admin
 from django import forms
-from unfold.admin import ModelAdmin
+
 from unfold.forms import UnfoldAdminPasswordInput
 
+from core.admin import VersionedAdmin
 from organizations.models import Organization
 
 
@@ -40,7 +41,7 @@ class OrganizationAdminForm(forms.ModelForm):
 
 
 @admin.register(Organization)
-class OrganizationAdmin(ModelAdmin):
+class OrganizationAdmin(VersionedAdmin):
     form = OrganizationAdminForm
 
     list_display = ("name", "domain", "email")
@@ -48,6 +49,6 @@ class OrganizationAdmin(ModelAdmin):
     ordering = ("name",)
 
     fieldsets = (
-        ("Основная информация", {"fields": ("name", "domain")}),
+        ("Основная информация", {"fields": ("name", "domain", "version")}),
         ("Почтовые настройки", {"fields": ("email", "email_host", "email_password", "email_port")}),
     )
