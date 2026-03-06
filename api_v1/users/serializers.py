@@ -149,6 +149,13 @@ class CandidateSerializer(serializers.ModelSerializer):
             "citizenships",
             "other_documents"
         )
+        
+    def validate(self, attrs):
+        forbidden = {"organization", "organization_email", "department", "vacancy"}
+        for field in forbidden:
+            if field in self.initial_data:
+                raise serializers.ValidationError({field: "Это поле только для чтения"})
+        return attrs
 
     def update(self, instance, validated_data):
         educations_data = validated_data.pop("educations", [])

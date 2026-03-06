@@ -475,7 +475,7 @@ def get_questionnaire_ru_xlsx(candidate, template):
             f"выдан {citizenship.passport_issued_at.strftime("%d/%m/%Y")}" if citizenship.passport_issued_at else None,
             citizenship.passport_issued_by if citizenship.passport_issued_by else None
         ]))
-    write_cell(ws, 2, 7, candidate.vacancy.position.name_ru) 
+    write_cell(ws, 2, 7, candidate.vacancy.title) 
     write_cell(ws, 5, 3, candidate.last_name)               
     write_cell(ws, 6, 3, candidate.first_name)             
     write_cell(ws, 7, 3, candidate.middle_name)           

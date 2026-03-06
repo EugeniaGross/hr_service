@@ -180,6 +180,7 @@ class CandidateEmploymentInline(TabularInline):
         "end_date",
         "dismissal_reason",
     )
+    tab = True
     
     formfield_overrides = {
         models.DateField: {
