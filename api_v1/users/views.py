@@ -382,6 +382,30 @@ class CandidateViewSet(
             return CandidateDetailSerializer
         if self.action == 'partial_update':
             return CandidatePartialUpdateSerializer
+        
+    def get_queryset(self):
+        if self.action == 'list':
+            return Candidate.objects.select_related(
+                "vacancy",
+                "vacancy__department",
+                "vacancy__department__organization",
+            ).prefetch_related(
+                "other_documents"
+            )
+        if self.action == 'retrieve':
+            return Candidate.objects.select_related(
+                "vacancy",
+                "vacancy__department",
+                "vacancy__department__organization",
+            ).prefetch_related(
+                "educations",
+                "employments",
+                "family_members",
+                "citizenships",
+                "other_documents",
+                "recommendations",
+            )
+        return super().get_queryset()
     
     @transaction.atomic
     def perform_create(self, serializer):

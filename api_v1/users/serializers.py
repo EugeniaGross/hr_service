@@ -233,6 +233,7 @@ class CandidateListSerializer(serializers.ModelSerializer):
     vacancy = serializers.CharField(source="vacancy.title")
     vacancy_id = serializers.IntegerField(source="vacancy.id")
     resume_file = Base64FileField(use_url=True)
+    other_documents = CandidateOtherDocumentSerializer(many=True, required=False)
 
     class Meta:
         model = Candidate
@@ -253,7 +254,8 @@ class CandidateListSerializer(serializers.ModelSerializer):
             "anonymization_date",
             "resume_file",
             "created_at",
-            "language"
+            "language",
+            "other_documents"
         )
 
 
@@ -312,7 +314,6 @@ class CandidateDetailSerializer(serializers.ModelSerializer):
             "salary_expectations",
             "signature",
             "email",
-            "vacancy",
             "created_at",
             "anonymization_date",
             "educations",
