@@ -635,6 +635,7 @@ class CandidateLinkCheckAPIView(APIView):
             {
                 "valid": link_valid,
                 "password_set": password_set,
+                "email": candidate.user.email,
             },
             status=status.HTTP_200_OK
         )
