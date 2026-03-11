@@ -19,7 +19,11 @@ class Vacancy(VersionedModel):
     #     related_name="vacancies",
     #     verbose_name="Должность"
     # )
-    code = models.CharField("Код", max_length=255)
+    code = models.CharField(
+        "Код", 
+        max_length=255,
+        blank=True
+    )
     title = models.CharField(
         max_length=255,
         verbose_name="Наименование вакансии"
