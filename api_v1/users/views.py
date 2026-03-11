@@ -624,7 +624,7 @@ class CandidateLinkCheckAPIView(APIView):
     )
     def get(self, request, uuid: str, lang: str):
         try:
-            candidate = Candidate.objects.get(access_uuid=uuid)
+            candidate = Candidate.objects.get(access_uuid=uuid, language=lang)
         except Candidate.DoesNotExist:
             return Response({"valid": False}, status=status.HTTP_404_NOT_FOUND)
 
