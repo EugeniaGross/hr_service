@@ -5,7 +5,8 @@ class CandidateFilter(django_filters.FilterSet):
     # position = django_filters.CharFilter(field_name="vacancy__position__name_ru", lookup_expr="icontains")
     organization = django_filters.NumberFilter(field_name="vacancy__department__organization")
     department = django_filters.CharFilter(field_name="vacancy__department__name", lookup_expr="icontains")
+    vacancy_title = django_filters.CharFilter(field_name="vacancy__title", lookup_expr="icontains")
 
     class Meta:
         model = Candidate
-        fields = ["vacancy", "organization", "status", "department"]
+        fields = ["vacancy", "vacancy_title", "organization", "status", "department"]
