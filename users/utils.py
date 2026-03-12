@@ -157,7 +157,7 @@ def send_reset_password_email(candidate, reset_link: str):
 def calculate_candidate_link_expiration() -> timezone.datetime | None:
     settings = Settings.objects.first()
     hours = settings.link_expiration_hours if settings else 72
-    return (timezone.now() + timedelta(hours=hours)).date()
+    return timezone.now() + timedelta(hours=hours)
 
 
 def anonymization_candidate_date():
