@@ -21,7 +21,7 @@ class IsCandidateWithValidLink(permissions.BasePermission):
         if not lang:
             return False
         
-        if request.auth.access_uuid != uuid_str and request.auth.language != lang:
+        if request.auth.access_uuid != uuid_str or request.auth.language != lang:
             return False
         
         return request.auth.is_link_valid()
