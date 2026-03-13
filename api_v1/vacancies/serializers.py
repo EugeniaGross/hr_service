@@ -9,7 +9,7 @@ class VacancySerializer(VersionedModelSerializer):
         source="candidates.count",
         read_only=True
     )
-    department_name = serializers.CharField(source="department.name")
+    department_name = serializers.CharField(source="department.name", read_only=True)
 
     class Meta:
         model = Vacancy
