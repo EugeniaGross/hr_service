@@ -74,7 +74,7 @@ def send_candidate_questionnaire(candidate):
     link = build_candidate_link(candidate)
     template_name = get_email_questionnaire_template(candidate.language)
     context = {
-        "name": candidate.first_name,
+        "name": f"{candidate.last_name} {candidate.first_name}",
         "organization_name": organization,
         "url": link,
     }
